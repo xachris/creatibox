@@ -81,3 +81,22 @@ Added:
 ### Development execution mode
 
 Recorded three implementation modes and selected Mode C for the current MVP: Chat + GitHub + GitHub Actions.
+
+
+### MVP implementation started
+
+Initial executable MVP foundation added:
+
+- Vue 3 + TypeScript + Vite
+- PixiJS world canvas
+- racing entities
+- edit/run separation
+- keyboard driving
+- collision and damage rules
+- IndexedDB autosave
+- .creatibox import/export
+- Undo/Redo
+- Vitest rule tests
+- GitHub Actions CI
+
+First full CI validation passed: install, typecheck, test and production build.
