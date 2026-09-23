@@ -11,6 +11,7 @@ import { createCar, createEntity, createRandomCar, createStarterProject } from '
 import { createRaceProject, type RacePresetOptions } from './model/raceGenerator'
 import type { CreatiBoxProject, EntityKind } from './model/types'
 import { exportProject, importProject, loadAutosave, saveAutosave } from './storage/projectStorage'
+import { raceAudio } from './media/sound/audioDirector'
 
 type Snapshot = CreatiBoxProject
 
@@ -101,15 +102,21 @@ function createPresetRace(options: RacePresetOptions) {
   showRaceComposer.value = false
 }
 
+function enterRunMode() {
+  raceAudio.unlock()
+  mode.value = 'run'
+}
+
 function startRacingGame(options: RacingLaunchOptions) {
   snapshot()
   project.value = createRaceProject(options)
   selectedId.value = project.value.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole === 'player')?.id ?? null
   screen.value = 'editor'
-  mode.value = 'run'
+  enterRunMode()
 }
 
 function goHome() {
+  raceAudio.stopAll()
   mode.value = 'edit'
   screen.value = 'home'
 }
@@ -265,7 +272,7 @@ function setColor(value: string) {
         <button :disabled="mode === 'run' || !undoStack.length" @click="undo">↶ 撤销</button>
         <button :disabled="mode === 'run' || !redoStack.length" @click="redo">↷ 重做</button>
         <span class="toolbar-divider" />
-        <button v-if="mode === 'edit'" class="primary" @click="mode = 'run'">▶ 运行</button>
+        <button v-if="mode === 'edit'" class="primary" @click="enterRunMode">▶ 运行</button>
         <button v-else class="danger" @click="mode = 'edit'">■ 停止并重置</button>
       </div>
 

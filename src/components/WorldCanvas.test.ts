@@ -6,6 +6,18 @@ import WorldCanvas from './WorldCanvas.vue'
 import { createRaceProject } from '../model/raceGenerator'
 
 const pixi = vi.hoisted(() => ({ tick: (_: { deltaMS: number }) => {}, camera: { x: 0, y: 0 } }))
+vi.mock('howler', () => {
+  class Howl {
+    play() { return 1 }
+    stop() {}
+    unload() {}
+    volume() { return this }
+    rate() { return this }
+    playing() { return false }
+    once(_e: string, cb: () => void) { cb(); return this }
+  }
+  return { Howl, Howler: { mute() {}, volume() {} } }
+})
 vi.mock('pixi.js', () => {
   class Container {
     position = { x: 0, y: 0, set: (x: number, y: number) => { this.position.x = x; this.position.y = y; if (this.constructor === Container) pixi.camera = { x, y } } }
@@ -61,6 +73,7 @@ describe('WorldCanvas entry and restart', () => {
     expect(pixi.camera).toEqual({ x: 0, y: 0 })
     await w.setProps({ mode: 'run' })
     expect(w.text()).toContain('准备出发')
+    expect(w.text()).toContain('静音')
   })
 
   it.each(['player', 'path'] as const)('shows actionable missing %s error and exit actions', async missing => {

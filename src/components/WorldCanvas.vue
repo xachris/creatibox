@@ -4,6 +4,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CreatiBoxProject, Entity, Vec2 } from '../model/types'
 import { WorldRuntime } from '../runtime/worldRuntime'
 import { DEFAULT_CAR_CONTROLS } from '../model/factory'
+import { raceAudio } from '../media/sound/audioDirector'
 
 const props = defineProps<{
   project: CreatiBoxProject
@@ -33,6 +34,10 @@ const racers = ref<{ id: string; name: string; speed: number; checkpoint: number
 const controlHint = ref('')
 let dragging: { id: string; offsetX: number; offsetY: number } | null = null
 const keys = new Set<string>()
+const muted = ref(raceAudio.isMuted())
+let previousPhase: string | null = null
+let audioBootstrapped = false
+
 
 
 function activeProject() {
@@ -190,6 +195,40 @@ function syncHud() {
   }
 }
 
+
+function toggleMute() {
+  muted.value = raceAudio.toggleMuted()
+}
+
+function syncRaceAudio() {
+  if (!runtime) return
+  const player = runtime.player
+  const controls = player.controls ?? DEFAULT_CAR_CONTROLS
+  if (runtime.phase === 'countdown') {
+    raceAudio.onCountdown(runtime.countdown)
+  }
+  if (previousPhase === 'countdown' && runtime.phase === 'racing') {
+    raceAudio.onGo()
+  }
+  if (runtime.phase === 'racing') {
+    const accelerating = keys.has(controls.accelerate.toLowerCase()) || !!(controls.primary && keys.has(controls.primary.toLowerCase()))
+    const braking = keys.has(controls.brake.toLowerCase())
+    raceAudio.syncEngine({
+      speed: player.speed,
+      maxSpeed: player.maxSpeed,
+      accelerating,
+      braking,
+    })
+    raceAudio.onContacts(runtime.contacts)
+  }
+  if (runtime.phase === 'finished' && previousPhase !== 'finished') {
+    if (player.state === 'Broken') raceAudio.onFinish('broken')
+    else if (runtime.finishOrder[0] === player.id) raceAudio.onFinish('win')
+    else raceAudio.onFinish('place')
+  }
+  previousPhase = runtime.phase
+}
+
 function initializeRuntime() {
   keys.clear()
   dragging = null
@@ -205,6 +244,10 @@ function initializeRuntime() {
   try {
     runtime = new WorldRuntime(props.project)
     runtimeProject = runtime.project
+    previousPhase = null
+    raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id)
+    muted.value = raceAudio.isMuted()
+    audioBootstrapped = true
     const c = runtime.player.controls ?? DEFAULT_CAR_CONTROLS
     const label = (key?: string) => key === ' ' ? 'Space' : ({ arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→' }[key?.toLowerCase() ?? ''] ?? key?.toUpperCase() ?? '无')
     controlHint.value = `${label(c.left)} / ${label(c.right)} 转向 · ${label(c.accelerate)} 前进 · ${label(c.brake)} 刹车 · ${label(c.primary)} 强加速`
@@ -223,6 +266,7 @@ function runStep(deltaSeconds: number) {
   runtime.step(deltaSeconds, keys)
   followPlayer(runtime.player)
   syncHud()
+  syncRaceAudio()
   render()
 }
 
@@ -291,6 +335,8 @@ function onKeyUp(event: KeyboardEvent) {
 watch(() => props.mode, (mode) => {
   if (mode === 'run') initializeRuntime()
   else {
+    raceAudio.stopAll()
+    previousPhase = null
     clearKeys()
     runtime = null
     runtimeProject = null
@@ -308,6 +354,7 @@ watch(() => props.selectedId, render)
 
 onBeforeUnmount(() => {
   disposed = true
+  raceAudio.stopAll()
   clearKeys()
   window.removeEventListener('blur', clearKeys)
   document.removeEventListener('visibilitychange', clearKeys)
@@ -334,11 +381,13 @@ onBeforeUnmount(() => {
       <div v-if="phase === 'finished' || error" class="race-result" role="status">
         <h2>{{ error ? '无法开始比赛' : '比赛结束' }}</h2>
         <p>{{ error || result }}</p>
+        <button type="button" class="audio-toggle" :aria-pressed="muted" @click="toggleMute">{{ muted ? '取消静音' : '静音' }}</button>
         <button class="primary" @click="initializeRuntime">重新比赛</button>
         <button @click="emit('edit')">进入编辑</button>
         <button @click="emit('home')">返回首页</button>
       </div>
       <div v-else class="race-actions">
+        <button type="button" class="audio-toggle" :aria-pressed="muted" @click="toggleMute">{{ muted ? '取消静音' : '静音' }}</button>
         <button @click="initializeRuntime">重新比赛</button>
         <button @click="emit('edit')">进入编辑</button>
         <button @click="emit('home')">返回首页</button>

@@ -77,6 +77,7 @@ https://creatibox-web-production.up.railway.app
 - IndexedDB 自动保存
 - `.creatibox` 项目导出 / 导入
 - Vitest 基础规则测试
+- 比赛音效：倒计时 / GO / 引擎 / 刹车 / 碰撞 / 胜负（Howler + 本地合成）
 - GitHub Actions：install → typecheck → test → build
 
 ### 本地运行

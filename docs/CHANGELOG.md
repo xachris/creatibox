@@ -2,6 +2,16 @@
 
 ## 2026-09-23
 
+### Racing audio and SFX playback (Phase A–C)
+
+- Added Howler-based `raceAudio` director with synthesized local WAV banks (no cloud assets).
+- Ceremony: countdown ticks, GO, win / place / broken finish fanfares.
+- Player engine: idle + move loops shaped by speed / throttle / brake; Light / Sport / Electric families differ in pitch and texture.
+- Collision one-shots with cooldown; classroom mute toggle on the race HUD (session-persisted).
+- Unlock on Start Race / Run click to satisfy browser autoplay rules.
+- Tests: 4 director unit tests; WorldCanvas keeps mute control in run mode.
+
+
 ### Racing audio / SFX system design
 
 - Added `docs/17_RACING_AUDIO_SFX_DESIGN.md`: event map for countdown/GO, engine idle–accel–cruise–coast, brake, collision, win/place/broken; layered architecture; Light/Sport/Electric family plan; Howler-based `AudioDirector` hooks; phased implementation A→D.

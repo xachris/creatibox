@@ -308,3 +308,11 @@ WorldRuntime / UI 状态
 **仪式音（倒计时/GO/胜负）+ 跟速度的玩家引擎 + 刹车/碰撞反馈**，并真正播发已保存的 `soundPreset`。
 
 下一开发任务应直接从 **Phase A** 开工，而不是先扩音乐 Creator。
+
+
+## 实现状态（2026-09-23）
+
+- Phase A（仪式音 + Howler + 静音）：已落地
+- Phase B（玩家引擎跟手）：已落地（合成循环 + rate/volume）
+- Phase C（刹车 + 碰撞）：已落地
+- Phase D（三族打磨 / 正式采样）：未开始

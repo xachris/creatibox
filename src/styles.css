@@ -737,3 +737,13 @@ button:disabled { opacity: .45; cursor: default; }
 .race-result { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100% - 40px)); padding: 28px; background: #fff; border-radius: 18px; box-shadow: 0 16px 60px #0f172a40; text-align: center; }
 .race-result button { margin: 4px; }
 .race-result p { line-height: 1.6; }
+
+.audio-toggle {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+.audio-toggle[aria-pressed='true'] {
+  background: #64748b;
+  border-color: #64748b;
+}
