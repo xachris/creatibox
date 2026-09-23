@@ -49,6 +49,18 @@ export function createEntity(kind: EntityKind, x = 120, y = 120): Entity {
   }
 }
 
+const RANDOM_CAR_COLORS = [0xb91c1c, 0x2563eb, 0x16a34a, 0xf59e0b, 0x7c3aed, 0xdb2777, 0x0891b2, 0x374151]
+const RANDOM_CAR_SHAPES: CarShape[] = ['classic', 'sport', 'boxy']
+
+function pick<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)]
+}
+
+function randomStep(min: number, max: number, step: number): number {
+  const count = Math.floor((max - min) / step)
+  return min + Math.floor(Math.random() * (count + 1)) * step
+}
+
 export function createCar(options: CarOptions, x = 180, y = 180): Entity {
   const car = createEntity('car', x, y)
   car.name = options.name?.trim() || 'My Car'
@@ -62,6 +74,19 @@ export function createCar(options: CarOptions, x = 180, y = 180): Entity {
   car.carShape = options.carShape ?? 'classic'
   car.controls = { ...(options.controls ?? DEFAULT_CAR_CONTROLS) }
   return car
+}
+
+export function createRandomCar(x = 180, y = 180): Entity {
+  return createCar({
+    name: `Random Car ${Math.floor(Math.random() * 900 + 100)}`,
+    color: pick(RANDOM_CAR_COLORS),
+    width: randomStep(56, 112, 8),
+    height: randomStep(30, 70, 4),
+    maxSpeed: randomStep(140, 360, 20),
+    wheelCount: pick([2, 4, 4, 4, 6, 8]),
+    carShape: pick(RANDOM_CAR_SHAPES),
+    controls: { ...DEFAULT_CAR_CONTROLS },
+  }, x, y)
 }
 
 export function createStarterProject(): CreatiBoxProject {
