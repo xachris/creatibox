@@ -33,6 +33,7 @@ Entity → State → Action → Interaction → Transition
 - [MVP V0.1 规范](docs/03_MVP_V0.1_SPEC.md)
 - [数据结构建议](docs/04_DATA_SCHEMA.md)
 - [开发路线图](docs/05_DEVELOPMENT_ROADMAP.md)
+- [开放世界自由度与边界](docs/06_OPEN_WORLD_BOUNDARIES.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 当前阶段
