@@ -11,6 +11,7 @@ import type {
 } from './types'
 
 export interface RacePresetOptions {
+  driver?: 'driver-a' | 'driver-b' | 'driver-c'
   track: TrackPreset
   length: TrackLength
   carShape: CarShape
@@ -99,6 +100,7 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
     maxSpeed: 260,
   }, start.x, start.y)
   player.rotation = heading
+  player.driverPreset = options.driver ?? 'driver-a'
   entities.push(player)
 
   for (let i = 0; i < options.opponents; i++) {
