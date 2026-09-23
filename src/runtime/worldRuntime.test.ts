@@ -3,6 +3,8 @@ import { reactive } from 'vue'
 import { createRaceProject, type RacePresetOptions } from '../model/raceGenerator'
 import { WorldRuntime } from './worldRuntime'
 import { cloneData } from '../model/clone'
+import { createEntity } from '../model/factory'
+import { intersects } from './rules'
 
 const defaults: RacePresetOptions = { track: 'straight', length: 1, carShape: 'sport', color: 'red', motion: 'dynamic', sound: 'sport', opponents: 3, difficulty: 'normal' }
 const idle = new Set<string>()
@@ -86,6 +88,83 @@ describe('world run lifecycle', () => {
     expect(run.phase).toBe('finished')
     expect(new WorldRuntime(source).player.durability).toBe(55)
   })
+
+  it('pushes overlapping cars apart and keeps them from stacking', () => {
+    const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 1 }))
+    const other = run.cars.find(c => c.controlRole === 'computer')!
+    run.player.position = { x: 200, y: 200 }
+    other.position = { x: 210, y: 200 }
+    run.player.rotation = 0
+    other.rotation = 0
+    run.player.speed = 120
+    other.speed = 40
+    run.phase = 'racing'
+    run.countdown = 0
+    advance(run, 0.2)
+    expect(intersects(run.player, other)).toBe(false)
+    expect(Math.hypot(run.player.position.x - other.position.x, run.player.position.y - other.position.y)).toBeGreaterThan(40)
+  })
+
+  it('lets a hard hit shove the other car and only damages on hard impacts', () => {
+    const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 1 }))
+    const other = run.cars.find(c => c.controlRole === 'computer')!
+    const before = other.durability
+    run.player.position = { x: 200, y: 200 }
+    other.position = { x: 250, y: 200 }
+    run.player.rotation = 0
+    other.rotation = 0
+    run.player.speed = 200
+    other.speed = 0
+    run.phase = 'racing'
+    run.countdown = 0
+    advance(run, 0.35)
+    expect(other.position.x).toBeGreaterThan(250)
+    expect(other.durability).toBeLessThan(before)
+    expect(run.player.speed).toBeLessThan(200)
+  })
+
+  it('treats broken wrecks as solid blockers but finished cars as ghosts', () => {
+    const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 2 }))
+    const [wreck, ghost] = run.cars.filter(c => c.controlRole === 'computer')
+    wreck.state = 'Broken'
+    wreck.durability = 0
+    wreck.speed = 0
+    wreck.position = { x: 300, y: 200 }
+    const wreckX = wreck.position.x
+    ghost.state = 'Finished'
+    ghost.speed = 0
+    ghost.position = { x: 400, y: 200 }
+    run.player.position = { x: 240, y: 200 }
+    run.player.rotation = 0
+    run.player.speed = 160
+    run.phase = 'racing'
+    run.countdown = 0
+    advance(run, 0.4)
+    expect(intersects(run.player, wreck)).toBe(false)
+    // Wreck stays solid but can be shoved aside by the live car.
+    expect(wreck.position.x).toBeGreaterThan(wreckX)
+    expect(run.player.speed).toBeLessThan(160)
+    // Ghost does not block — player can pass through the finished car.
+    run.player.position = { x: 390, y: 200 }
+    run.player.speed = 160
+    advance(run, 0.25)
+    expect(run.player.position.x).toBeGreaterThan(ghost.position.x)
+  })
+
+  it('separates a car that drives into a wall and damps its speed', () => {
+    const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 0 }))
+    const wall = createEntity('wall', 260, 200)
+    wall.size = { x: 40, y: 120 }
+    run.project.world.entities.push(wall)
+    run.player.position = { x: 220, y: 200 }
+    run.player.rotation = 0
+    run.player.speed = 180
+    run.phase = 'racing'
+    run.countdown = 0
+    advance(run, 0.25)
+    expect(intersects(run.player, wall)).toBe(false)
+    expect(run.player.speed).toBeLessThan(120)
+  })
 })
 
 for (const track of ['straight', 'curve', 'circuit'] as const) {
@@ -96,7 +175,8 @@ for (const track of ['straight', 'curve', 'circuit'] as const) {
         advance(run, 150)
         const cpu = run.cars.filter(c => c.controlRole === 'computer')
         expect(cpu.map(c => ({ name: c.name, state: c.state, waypoint: c.waypointIndex }))).toEqual(cpu.map(c => ({ name: c.name, state: 'Finished', waypoint: run.project.world.trackPath!.length - 1 })))
-        expect(run.player.state).toBe('Idle')
+        // Parked player sits on the racing line; CPUs may clip and damage them under solid physics.
+        expect(['Idle', 'Damaged']).toContain(run.player.state)
       })
     }
   }

@@ -2,6 +2,15 @@
 
 ## 2026-09-23
 
+### V0.1.2 arcade collision physics (no overlap)
+
+- Cars / walls / obstacles no longer interpenetrate: SAT manifold + multi-pass separation.
+- Car–car hits shove both vehicles apart and damp the striker; hard hits apply light damage.
+- Walls / obstacles bounce and scrape-damp; broken wrecks stay solid but can be shoved clear; finished cars ghost the finish line.
+- Soft grind no longer melts durability (impact cooldown + closing-speed gate). Spawn grid spaced so the grid never starts stacked.
+- Package version bumped to `0.1.2`.
+
+
 ### V0.1.1 smoother racing SFX timbre
 
 - Rebuilt synth engine: soft-saw / triangle / sine layers, filtered noise, seamless loop crossfades, soft limiting.

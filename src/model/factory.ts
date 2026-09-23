@@ -136,6 +136,7 @@ export function createStarterProject(): CreatiBoxProject {
       rules: [
         { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'wall', effect: 'damage', value: 25 },
         { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'obstacle', effect: 'damage', value: 20 },
+        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'car', effect: 'damage', value: 4 },
         { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'reach', targetKind: 'finish', effect: 'finish' },
       ],
       trackPreset: 'straight',

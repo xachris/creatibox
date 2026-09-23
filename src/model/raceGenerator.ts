@@ -105,6 +105,9 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
 
   for (let i = 0; i < options.opponents; i++) {
     const profileSpeed = options.difficulty === 'easy' ? 190 : options.difficulty === 'fast' ? 280 : 235
+    // Stagger far enough (cars are ~72×42) so the grid never starts overlapping.
+    const back = 95 + i * 88
+    const side = (i % 2 === 0 ? 1 : -1) * (52 + Math.floor(i / 2) * 8)
     const opponent = createCar({
       name: `CPU ${i + 1}`,
       color: OPPONENT_COLORS[i % OPPONENT_COLORS.length],
@@ -114,7 +117,8 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
       motionPreset: options.motion,
       soundPreset: options.sound,
       maxSpeed: profileSpeed + i * 8,
-    }, start.x - 60 - i * 54, start.y + (i % 2 === 0 ? 58 : -58))
+    }, start.x - Math.cos(heading) * back + Math.sin(heading) * side,
+    start.y - Math.sin(heading) * back - Math.cos(heading) * side)
     opponent.rotation = heading
     entities.push(opponent)
   }
@@ -134,7 +138,7 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
     if (i % 2 === 0) {
       // Place obstacles beside the outgoing road, never across the AI route.
       const heading = angleBetween(p, path[i + 1])
-      const obstacle = createEntity('obstacle', p.x - Math.sin(heading) * 155, p.y + Math.cos(heading) * 155)
+      const obstacle = createEntity('obstacle', p.x - Math.sin(heading) * 200, p.y + Math.cos(heading) * 200)
       entities.push(obstacle)
     }
   }
@@ -156,7 +160,9 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
       name: options.track === 'straight' ? 'Straight Race' : options.track === 'curve' ? 'Curve Race' : 'Circuit Race',
       entities,
       rules: [
-        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'obstacle', effect: 'damage', value: 15 },
+        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'obstacle', effect: 'damage', value: 10 },
+        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'wall', effect: 'damage', value: 15 },
+        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'car', effect: 'damage', value: 3 },
         { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'reach', targetKind: 'finish', effect: 'finish' },
       ],
       trackPreset: options.track,
