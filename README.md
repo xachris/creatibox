@@ -32,6 +32,7 @@ Entity → State → Action → Interaction → Transition
 - [世界模型规范](docs/02_WORLD_MODEL_SPEC.md)
 - [MVP V0.1 规范](docs/03_MVP_V0.1_SPEC.md)
 - [数据结构建议](docs/04_DATA_SCHEMA.md)
+- [开发路线图](docs/05_DEVELOPMENT_ROADMAP.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 当前阶段
