@@ -3,7 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
 import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
 import CreationModePicker from './components/CreationModePicker.vue'
+import RaceComposer from './components/RaceComposer.vue'
 import { createCar, createEntity, createRandomCar, createStarterProject } from './model/factory'
+import { createRaceProject, type RacePresetOptions } from './model/raceGenerator'
 import type { CreatiBoxProject, EntityKind } from './model/types'
 import { exportProject, importProject, loadAutosave, saveAutosave } from './storage/projectStorage'
 
@@ -17,6 +19,7 @@ const redoStack = ref<Snapshot[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const showCarWizard = ref(false)
 const showCreationModePicker = ref(false)
+const showRaceComposer = ref(false)
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -28,6 +31,7 @@ const palette: { kind: EntityKind; label: string }[] = [
   { kind: 'road', label: '道路' },
   { kind: 'wall', label: '墙' },
   { kind: 'obstacle', label: '障碍' },
+  { kind: 'tree', label: '树' },
   { kind: 'start', label: '起点' },
   { kind: 'finish', label: '终点' },
 ]
@@ -82,6 +86,13 @@ function createGuidedCar(result: CarWizardResult) {
   const car = createCar(result, 180 + (offset % 220), 150 + (offset % 140))
   placeCreatedCar(car)
   showCarWizard.value = false
+}
+
+function createPresetRace(options: RacePresetOptions) {
+  snapshot()
+  project.value = createRaceProject(options)
+  selectedId.value = project.value.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole === 'player')?.id ?? null
+  showRaceComposer.value = false
 }
 
 function moveEntity(id: string, x: number, y: number) {
@@ -175,6 +186,11 @@ function setColor(value: string) {
 
 <template>
   <main class="app-shell">
+    <RaceComposer
+      v-if="showRaceComposer"
+      @close="showRaceComposer = false"
+      @create="createPresetRace"
+    />
     <CreationModePicker
       v-if="showCreationModePicker"
       @close="showCreationModePicker = false"
@@ -196,6 +212,7 @@ function setColor(value: string) {
 
       <div class="toolbar">
         <button :disabled="mode === 'run'" @click="newProject">新建</button>
+        <button class="accent" :disabled="mode === 'run'" @click="showRaceComposer = true">🏁 快速比赛</button>
         <button :disabled="mode === 'run'" @click="fileInput?.click()">打开</button>
         <button :disabled="mode === 'run'" @click="exportProject(project)">导出</button>
         <span class="toolbar-divider" />
@@ -232,7 +249,7 @@ function setColor(value: string) {
         <div class="tip-card">
           <strong>{{ mode === 'edit' ? '编辑模式' : '运行模式' }}</strong>
           <p v-if="mode === 'edit'">点击“赛车”可选默认、随机或指南三种创建方式。所有生成结果都能继续修改。</p>
-          <p v-else>方向键或 WASD 驾驶赛车。碰墙会损伤，抵达绿色终点即完成。</p>
+          <p v-else>方向键控制方向，Space 加速。摄像机会跟随玩家车，电脑车会沿赛道自动比赛。</p>
         </div>
       </aside>
 
@@ -245,6 +262,12 @@ function setColor(value: string) {
           <span class="mode-chip" :class="{ running: mode === 'run' }">
             {{ mode === 'edit' ? 'EDIT' : 'RUN' }}
           </span>
+        </div>
+        <div v-if="mode === 'run'" class="control-hint">
+          <strong>驾驶</strong>
+          <span>← → 转向</span>
+          <span>↑ 前进 · ↓ 刹车</span>
+          <span>Space 油门</span>
         </div>
         <WorldCanvas
           :project="project"
@@ -302,6 +325,13 @@ function setColor(value: string) {
 
           <template v-if="selected.kind === 'car'">
             <label>
+              控制角色
+              <select v-model="selected.controlRole" :disabled="mode === 'run'" @focus="beginPropertyEdit">
+                <option value="player">玩家控制</option>
+                <option value="computer">电脑控制</option>
+              </select>
+            </label>
+            <label>
               最大速度
               <input v-model.number="selected.maxSpeed" type="range" min="80" max="420" step="10" :disabled="mode === 'run'" @pointerdown="beginPropertyEdit" />
               <span class="value">{{ selected.maxSpeed }}</span>
@@ -339,7 +369,7 @@ function setColor(value: string) {
       <span>规则 {{ project.world.rules.length }}</span>
       <span>自动保存到本机浏览器</span>
       <span class="status-grow" />
-      <span>赛车按键由创建者自己定义</span>
+      <span>{{ project.world.trackPreset ?? 'custom' }} · {{ project.world.trackLength ?? 1 }} km</span>
     </footer>
   </main>
 </template>
