@@ -4,6 +4,8 @@ import WorldCanvas from './components/WorldCanvas.vue'
 import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
 import CreationModePicker from './components/CreationModePicker.vue'
 import RaceComposer from './components/RaceComposer.vue'
+import HomeCatalog from './components/HomeCatalog.vue'
+import RacingLaunchFlow, { type RacingLaunchOptions } from './components/RacingLaunchFlow.vue'
 import { createCar, createEntity, createRandomCar, createStarterProject } from './model/factory'
 import { createRaceProject, type RacePresetOptions } from './model/raceGenerator'
 import type { CreatiBoxProject, EntityKind } from './model/types'
@@ -20,6 +22,8 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const showCarWizard = ref(false)
 const showCreationModePicker = ref(false)
 const showRaceComposer = ref(false)
+const screen = ref<'home' | 'launch' | 'editor'>('home')
+const hasRecentProject = ref(false)
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -95,6 +99,24 @@ function createPresetRace(options: RacePresetOptions) {
   showRaceComposer.value = false
 }
 
+function startRacingGame(options: RacingLaunchOptions) {
+  snapshot()
+  project.value = createRaceProject(options)
+  selectedId.value = project.value.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole === 'player')?.id ?? null
+  screen.value = 'editor'
+  mode.value = 'run'
+}
+
+function goHome() {
+  mode.value = 'edit'
+  screen.value = 'home'
+}
+
+function continueProject() {
+  screen.value = 'editor'
+  mode.value = 'edit'
+}
+
 function moveEntity(id: string, x: number, y: number) {
   const entity = project.value.world.entities.find((item) => item.id === id)
   if (!entity) return
@@ -164,7 +186,10 @@ async function openFile(event: Event) {
 
 onMounted(async () => {
   const saved = await loadAutosave()
-  if (saved) project.value = saved
+  if (saved) {
+    project.value = saved
+    hasRecentProject.value = true
+  }
 })
 
 watch(project, () => {
@@ -185,7 +210,21 @@ function setColor(value: string) {
 </script>
 
 <template>
-  <main class="app-shell">
+  <HomeCatalog
+    v-if="screen === 'home'"
+    :has-recent-project="hasRecentProject"
+    @racing="screen = 'launch'"
+    @continue="continueProject"
+    @import="fileInput?.click()"
+  />
+
+  <RacingLaunchFlow
+    v-else-if="screen === 'launch'"
+    @cancel="screen = 'home'"
+    @start="startRacingGame"
+  />
+
+  <main v-else class="app-shell">
     <RaceComposer
       v-if="showRaceComposer"
       @close="showRaceComposer = false"
@@ -211,6 +250,7 @@ function setColor(value: string) {
       </div>
 
       <div class="toolbar">
+        <button @click="goHome">首页</button>
         <button :disabled="mode === 'run'" @click="newProject">新建</button>
         <button class="accent" :disabled="mode === 'run'" @click="showRaceComposer = true">🏁 快速比赛</button>
         <button :disabled="mode === 'run'" @click="fileInput?.click()">打开</button>
