@@ -22,8 +22,11 @@ function writeMuted(value: boolean) {
 }
 function readVolume() {
   try {
-    const raw = Number(sessionStorage.getItem(VOLUME_KEY))
-    return Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0.7
+    const stored = sessionStorage.getItem(VOLUME_KEY)
+    if (stored == null || stored === '') return 0.7
+    const raw = Number(stored)
+    if (!Number.isFinite(raw)) return 0.7
+    return Math.min(1, Math.max(0, raw))
   } catch {
     return 0.7
   }
@@ -78,18 +81,13 @@ class AudioDirector {
   unlock() {
     if (this.unlocked) return
     this.unlocked = true
+    if (this.masterVolume <= 0) this.masterVolume = 0.7
     Howler.mute(this.muted)
     Howler.volume(this.masterVolume)
-    const kick = new Howl({
-      src: ['data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='],
-      volume: 0,
-    })
-    kick.play()
-    kick.once('play', () => {
-      kick.stop()
-      kick.unload()
-    })
+    try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
     this.ensureUiSounds()
+    // Audible unlock chirp also resumes AudioContext in strict browsers.
+    this.playOneShot('countdownTick', 0.35)
   }
 
   beginRace(soundPreset: SoundPreset, playerId: string) {
@@ -102,6 +100,10 @@ class AudioDirector {
     this.finishPlayed = false
     this.knownContacts = new Set()
     this.loadPreset(soundPreset)
+    if (!this.muted) {
+      this.lastTickSecond = 3
+      this.playOneShot('countdownTick', 0.85)
+    }
   }
 
   onCountdown(secondsLeft: number) {
@@ -163,7 +165,7 @@ class AudioDirector {
 
     if (ratio < 0.03 && !accelerating) {
       if (!this.idle.playing()) this.idle.play()
-      this.idle.volume(0.22)
+      this.idle.volume(0.35)
       this.idle.rate(0.92)
       if (this.move.playing()) this.move.volume(0)
       if (this.brakeLoop?.playing()) this.brakeLoop.stop()
@@ -172,15 +174,15 @@ class AudioDirector {
 
     if (!this.move.playing()) this.move.play()
     if (!this.idle.playing()) this.idle.play()
-    this.idle.volume(Math.max(0, 0.14 * (1 - ratio)))
+    this.idle.volume(Math.max(0, 0.2 * (1 - ratio)))
     const rate = (this.preset === 'electric' ? 0.85 : 0.75) + ratio * (accelerating ? 0.95 : 0.7)
-    const volume = (0.18 + ratio * 0.55) * (accelerating ? 1 : state.braking ? 0.7 : 0.82)
+    const volume = (0.28 + ratio * 0.65) * (accelerating ? 1 : state.braking ? 0.75 : 0.88)
     this.move.rate(rate)
     this.move.volume(volume)
 
     if (braking) {
       if (this.brakeLoop && !this.brakeLoop.playing()) {
-        this.brakeLoop.volume(0.32)
+        this.brakeLoop.volume(0.45)
         this.brakeLoop.play()
       }
     } else if (this.brakeLoop?.playing()) {
@@ -204,6 +206,11 @@ class AudioDirector {
 
   private playOneShot(id: OneShotId, volume: number) {
     this.ensureUiSounds()
+    if (this.masterVolume <= 0) {
+      this.masterVolume = 0.7
+      Howler.volume(this.masterVolume)
+    }
+    try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
     const sound = this.oneShots.get(id)
     if (!sound) return
     sound.stop()
@@ -211,12 +218,30 @@ class AudioDirector {
     sound.play()
   }
 
+  private makeHowl(src: string, options: { loop?: boolean; volume?: number } = {}) {
+    return new Howl({
+      src: [src],
+      format: ['wav'],
+      html5: false,
+      preload: true,
+      loop: !!options.loop,
+      volume: options.volume ?? 0.7,
+      onloaderror: (_id, err) => {
+        console.warn('[raceAudio] loaderror', err)
+      },
+      onplayerror: (_id, err) => {
+        console.warn('[raceAudio] playerror', err)
+        try { void Howler.ctx?.resume?.().then(() => { /* retried by later plays */ }) } catch { /* ignore */ }
+      },
+    })
+  }
+
   private ensureUiSounds() {
     if (this.oneShots.has('countdownTick')) return
     const ui = getUiOneShots()
     for (const [id, src] of Object.entries(ui) as [OneShotId, string][]) {
       if (id === 'brake') continue
-      this.oneShots.set(id, new Howl({ src: [src], volume: 0.7, preload: true }))
+      this.oneShots.set(id, this.makeHowl(src, { volume: 0.7 }))
     }
   }
 
@@ -227,9 +252,9 @@ class AudioDirector {
     this.idle?.unload()
     this.move?.unload()
     this.brakeLoop?.unload()
-    this.idle = new Howl({ src: [bank.loops.engineIdle], loop: true, volume: 0.2, preload: true })
-    this.move = new Howl({ src: [bank.loops.engineMove], loop: true, volume: 0, preload: true })
-    this.brakeLoop = new Howl({ src: [bank.oneShots.brake], loop: true, volume: 0.3, preload: true })
+    this.idle = this.makeHowl(bank.loops.engineIdle, { loop: true, volume: 0.28 })
+    this.move = this.makeHowl(bank.loops.engineMove, { loop: true, volume: 0 })
+    this.brakeLoop = this.makeHowl(bank.oneShots.brake, { loop: true, volume: 0.4 })
   }
 
   private stopEngine() {

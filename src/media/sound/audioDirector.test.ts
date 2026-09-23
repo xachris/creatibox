@@ -71,6 +71,14 @@ describe('raceAudio director', () => {
     globalThis.sessionStorage?.clear?.()
   })
 
+  it('defaults master volume above zero when storage is empty', async () => {
+    const { raceAudio } = await import('./audioDirector')
+    expect(raceAudio.getVolume()).toBeGreaterThan(0)
+    raceAudio.unlock()
+    expect(raceAudio.getVolume()).toBeGreaterThan(0)
+    raceAudio.dispose()
+  })
+
   it('plays countdown ticks once per second and go once', async () => {
     const { raceAudio } = await import('./audioDirector')
     raceAudio.beginRace('sport', 'player-1')

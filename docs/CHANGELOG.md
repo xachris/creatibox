@@ -4,6 +4,8 @@
 
 ### Racing audio and SFX playback (Phase A–C)
 
+- Fixed silent preview: missing session volume key was parsed as `0` via `Number(null)`, muting Howler globally; default is now 0.7. Added WAV format hints, louder engine levels, and an immediate countdown tick on race start.
+
 - Added Howler-based `raceAudio` director with synthesized local WAV banks (no cloud assets).
 - Ceremony: countdown ticks, GO, win / place / broken finish fanfares.
 - Player engine: idle + move loops shaped by speed / throttle / brake; Light / Sport / Electric families differ in pitch and texture.
