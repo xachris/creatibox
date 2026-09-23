@@ -50,11 +50,29 @@ function drawEntity(entity: Entity) {
   }
 
   if (entity.kind === 'car') {
-    graphic
-      .circle(-entity.size.x * 0.28, entity.size.y * 0.42, 6)
-      .fill(0x111827)
-      .circle(entity.size.x * 0.28, entity.size.y * 0.42, 6)
-      .fill(0x111827)
+    const wheelCount = Math.max(2, Math.min(8, entity.wheelCount ?? 4))
+    const pairs = Math.max(1, Math.ceil(wheelCount / 2))
+    for (let i = 0; i < pairs; i++) {
+      const t = pairs === 1 ? 0.5 : i / (pairs - 1)
+      const x = -entity.size.x * 0.32 + t * entity.size.x * 0.64
+      graphic.circle(x, entity.size.y * 0.44, 5).fill(0x111827)
+      if (i * 2 + 1 < wheelCount) graphic.circle(x, -entity.size.y * 0.44, 5).fill(0x111827)
+    }
+    if ((entity.carShape ?? 'classic') === 'sport') {
+      graphic
+        .poly([
+          -entity.size.x * 0.34, -entity.size.y * 0.34,
+          entity.size.x * 0.18, -entity.size.y * 0.34,
+          entity.size.x * 0.38, 0,
+          entity.size.x * 0.18, entity.size.y * 0.34,
+          -entity.size.x * 0.34, entity.size.y * 0.34,
+        ])
+        .stroke({ width: 2, color: 0xffffff, alpha: 0.7 })
+    }
+    if ((entity.carShape ?? 'classic') === 'boxy') {
+      graphic.rect(-entity.size.x * 0.18, -entity.size.y * 0.25, entity.size.x * 0.36, entity.size.y * 0.5)
+        .stroke({ width: 2, color: 0xffffff, alpha: 0.7 })
+    }
   }
 
   graphic.position.set(entity.position.x, entity.position.y)
