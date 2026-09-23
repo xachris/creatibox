@@ -100,3 +100,14 @@ Initial executable MVP foundation added:
 - GitHub Actions CI
 
 First full CI validation passed: install, typecheck, test and production build.
+
+
+### Creation model refined
+
+Object creation now supports three entry modes:
+
+- Default: create a sensible base object immediately
+- Random: generate bounded variations
+- Guided: ask the student to define selected properties step by step
+
+The three modes share the same Entity model and remain fully editable after creation.
