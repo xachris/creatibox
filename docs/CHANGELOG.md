@@ -111,3 +111,15 @@ Object creation now supports three entry modes:
 - Guided: ask the student to define selected properties step by step
 
 The three modes share the same Entity model and remain fully editable after creation.
+
+
+### Racing MVP clarified
+
+The first playable world is now defined around:
+
+- road, cars, trees and a small number of obstacles
+- player-controlled and computer-controlled car roles
+- useful default controls with editable mappings
+- simple waypoint-based opponent AI
+- separation between abstract authoring geometry and polished visual assets
+- curated local asset families for cars and environment
