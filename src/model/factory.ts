@@ -1,3 +1,4 @@
+import { cloneData } from './clone'
 import type {
   CarShape,
   ControlRole,
@@ -130,7 +131,7 @@ export function createStarterProject(): CreatiBoxProject {
         car,
         createEntity('wall', 470, 160),
         createEntity('tree', 430, 300),
-        createEntity('finish', 500, 300),
+        { ...createEntity('finish', 900, 220), rotation: Math.PI / 2, size: { x: 170, y: 18 } },
       ],
       rules: [
         { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'wall', effect: 'damage', value: 25 },
@@ -146,5 +147,5 @@ export function createStarterProject(): CreatiBoxProject {
 }
 
 export function cloneProject(project: CreatiBoxProject): CreatiBoxProject {
-  return structuredClone(project)
+  return cloneData(project)
 }

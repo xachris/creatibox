@@ -1,3 +1,4 @@
+import { cloneData } from '../model/clone'
 import { openDB } from 'idb'
 import type { CreatiBoxProject } from '../model/types'
 
@@ -17,7 +18,7 @@ async function db() {
 
 export async function saveAutosave(project: CreatiBoxProject): Promise<void> {
   const database = await db()
-  await database.put(STORE, structuredClone(project), AUTOSAVE_KEY)
+  await database.put(STORE, cloneData(project), AUTOSAVE_KEY)
 }
 
 export async function loadAutosave(): Promise<CreatiBoxProject | undefined> {

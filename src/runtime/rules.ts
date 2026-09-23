@@ -1,12 +1,15 @@
 import type { Entity, Rule } from '../model/types'
 
 export function intersects(a: Entity, b: Entity): boolean {
-  return !(
-    a.position.x + a.size.x / 2 < b.position.x - b.size.x / 2 ||
-    a.position.x - a.size.x / 2 > b.position.x + b.size.x / 2 ||
-    a.position.y + a.size.y / 2 < b.position.y - b.size.y / 2 ||
-    a.position.y - a.size.y / 2 > b.position.y + b.size.y / 2
-  )
+  // Separating-axis test for rotated rectangles, including the finish gate.
+  const axes = [a.rotation, a.rotation + Math.PI / 2, b.rotation, b.rotation + Math.PI / 2]
+  const radius = (entity: Entity, angle: number) =>
+    Math.abs(Math.cos(entity.rotation - angle)) * entity.size.x / 2 +
+    Math.abs(Math.sin(entity.rotation - angle)) * entity.size.y / 2
+  return axes.every(angle => {
+    const distance = Math.abs((b.position.x - a.position.x) * Math.cos(angle) + (b.position.y - a.position.y) * Math.sin(angle))
+    return distance <= radius(a, angle) + radius(b, angle)
+  })
 }
 
 export function applyInteractionRule(source: Entity, target: Entity, rule: Rule): void {

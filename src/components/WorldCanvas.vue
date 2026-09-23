@@ -2,7 +2,8 @@
 import { Application, Container, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CreatiBoxProject, Entity, Vec2 } from '../model/types'
-import { applyInteractionRule, intersects, matchingRule } from '../runtime/rules'
+import { WorldRuntime } from '../runtime/worldRuntime'
+import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 
 const props = defineProps<{
   project: CreatiBoxProject
@@ -13,15 +14,26 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [id: string | null]
   move: [id: string, x: number, y: number]
+  edit: []
+  home: []
 }>()
 
 const host = ref<HTMLDivElement | null>(null)
 let app: Application | null = null
 let worldLayer: Container | null = null
 let runtimeProject: CreatiBoxProject | null = null
+let runtime: WorldRuntime | null = null
+let disposed = false
+const phase = ref('loading')
+const countdown = ref(3)
+const elapsed = ref(0)
+const error = ref('')
+const result = ref('')
+const racers = ref<{ id: string; name: string; speed: number; checkpoint: number; finished: boolean }[]>([])
+const controlHint = ref('')
 let dragging: { id: string; offsetX: number; offsetY: number } | null = null
 const keys = new Set<string>()
-const activeContacts = new Set<string>()
+
 
 function activeProject() {
   return props.mode === 'run' && runtimeProject ? runtimeProject : props.project
@@ -154,96 +166,6 @@ function render() {
   }
 }
 
-function normalizeAngle(angle: number) {
-  while (angle > Math.PI) angle -= Math.PI * 2
-  while (angle < -Math.PI) angle += Math.PI * 2
-  return angle
-}
-
-function updateComputerCar(car: Entity, path: Vec2[], dt: number) {
-  if (path.length < 2 || car.state === 'Finished' || car.state === 'Broken') return
-  const index = Math.min(car.waypointIndex ?? 1, path.length - 1)
-  const target = path[index]
-  const dx = target.x - car.position.x
-  const dy = target.y - car.position.y
-  const distance = Math.hypot(dx, dy)
-
-  if (distance < 90 && index < path.length - 1) {
-    car.waypointIndex = index + 1
-    return
-  }
-
-  const desired = Math.atan2(dy, dx)
-  const delta = normalizeAngle(desired - car.rotation)
-  const turnRate = car.opponentProfile === 'easy' ? 1.65 : car.opponentProfile === 'fast' ? 2.65 : 2.15
-  car.rotation += Math.max(-turnRate * dt, Math.min(turnRate * dt, delta))
-
-  const acceleration = car.opponentProfile === 'easy' ? 105 : car.opponentProfile === 'fast' ? 155 : 130
-  car.speed = Math.min(car.maxSpeed, car.speed + acceleration * dt)
-  car.position.x += Math.cos(car.rotation) * car.speed * dt
-  car.position.y += Math.sin(car.rotation) * car.speed * dt
-  car.state = 'Moving'
-
-  if (index === path.length - 1 && distance < 75) {
-    car.state = 'Finished'
-    car.speed = 0
-  }
-}
-
-function updatePlayerCar(car: Entity, dt: number) {
-  if (car.state === 'Broken' || car.state === 'Finished') return
-
-  const controls = car.controls ?? {
-    accelerate: 'arrowup',
-    brake: 'arrowdown',
-    left: 'arrowleft',
-    right: 'arrowright',
-    primary: ' ',
-  }
-
-  const forward = keys.has(controls.accelerate.toLowerCase())
-  const primary = controls.primary ? keys.has(controls.primary.toLowerCase()) : false
-  const braking = keys.has(controls.brake.toLowerCase())
-  const left = keys.has(controls.left.toLowerCase())
-  const right = keys.has(controls.right.toLowerCase())
-
-  if (forward || primary) car.speed = Math.min(car.maxSpeed, car.speed + (primary ? 210 : 165) * dt)
-  else car.speed = Math.max(0, car.speed - 60 * dt)
-
-  if (braking) car.speed = Math.max(0, car.speed - 250 * dt)
-
-  const turn = (right ? 1 : 0) - (left ? 1 : 0)
-  car.rotation += turn * 2.4 * dt * Math.max(0.25, car.speed / Math.max(car.maxSpeed, 1))
-
-  if (car.speed > 0) {
-    car.state = 'Moving'
-    car.position.x += Math.cos(car.rotation) * car.speed * dt
-    car.position.y += Math.sin(car.rotation) * car.speed * dt
-  } else if (car.state === 'Moving') {
-    car.state = 'Idle'
-  }
-}
-
-function processCollisions(car: Entity, worldEntities: Entity[], rules: CreatiBoxProject['world']['rules']) {
-  for (const target of worldEntities) {
-    if (target.id === car.id || target.kind === 'road' || target.kind === 'start' || target.kind === 'tree') continue
-    const key = `${car.id}:${target.id}`
-    const touching = intersects(car, target)
-    if (touching && !activeContacts.has(key)) {
-      activeContacts.add(key)
-      const rule = matchingRule(rules, car, target)
-      if (rule) applyInteractionRule(car, target, rule)
-      if (target.kind !== 'finish' && target.kind !== 'car') {
-        car.speed *= 0.42
-        car.position.x -= Math.cos(car.rotation) * 12
-        car.position.y -= Math.sin(car.rotation) * 12
-      }
-    } else if (!touching) {
-      activeContacts.delete(key)
-    }
-  }
-}
-
 function followPlayer(player: Entity) {
   if (!app || !worldLayer) return
   worldLayer.position.set(
@@ -252,63 +174,114 @@ function followPlayer(player: Entity) {
   )
 }
 
+function syncHud() {
+  if (!runtime) return
+  phase.value = runtime.phase
+  countdown.value = Math.ceil(runtime.countdown - 1e-8)
+  elapsed.value = runtime.elapsed
+  racers.value = runtime.cars.map(car => ({
+    id: car.id, name: car.name, speed: Math.round(car.speed),
+    checkpoint: (car.waypointIndex ?? 1) - 1, finished: car.state === 'Finished',
+  }))
+  if (runtime.phase === 'finished') {
+    result.value = runtime.player.state === 'Finished'
+      ? `你已抵达终点！第 ${runtime.finishOrder.indexOf(runtime.player.id) + 1} 名 · ${runtime.elapsed.toFixed(1)} 秒`
+      : '赛车受损无法继续，重赛再试一次吧。'
+  }
+}
+
+function initializeRuntime() {
+  keys.clear()
+  dragging = null
+  runtime = null
+  runtimeProject = null
+  error.value = ''
+  result.value = ''
+  racers.value = []
+  if (!app || !worldLayer) return
+  elapsed.value = 0
+  countdown.value = 3
+  controlHint.value = ''
+  try {
+    runtime = new WorldRuntime(props.project)
+    runtimeProject = runtime.project
+    const c = runtime.player.controls ?? DEFAULT_CAR_CONTROLS
+    const label = (key?: string) => key === ' ' ? 'Space' : ({ arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→' }[key?.toLowerCase() ?? ''] ?? key?.toUpperCase() ?? '无')
+    controlHint.value = `${label(c.left)} / ${label(c.right)} 转向 · ${label(c.accelerate)} 前进 · ${label(c.brake)} 刹车 · ${label(c.primary)} 强加速`
+    followPlayer(runtime.player)
+    syncHud()
+    host.value?.focus()
+  } catch (cause) {
+    phase.value = 'error'
+    error.value = cause instanceof Error ? cause.message : '比赛启动失败，请重新比赛。'
+  }
+  render()
+}
+
 function runStep(deltaSeconds: number) {
-  if (!runtimeProject) return
-  const world = runtimeProject.world
-  const path = world.trackPath ?? []
-
-  const player = world.entities.find((entity) => entity.kind === 'car' && entity.controlRole !== 'computer')
-  if (player) {
-    updatePlayerCar(player, deltaSeconds)
-    processCollisions(player, world.entities, world.rules)
-    followPlayer(player)
-  }
-
-  for (const car of world.entities.filter((entity) => entity.kind === 'car' && entity.controlRole === 'computer')) {
-    updateComputerCar(car, path, deltaSeconds)
-    processCollisions(car, world.entities, world.rules)
-  }
-
+  if (!runtime || document.hidden) return
+  runtime.step(deltaSeconds, keys)
+  followPlayer(runtime.player)
+  syncHud()
   render()
 }
 
 onMounted(async () => {
   if (!host.value) return
-  app = new Application()
-  await app.init({
-    background: '#dbe7cf',
-    antialias: true,
-    resizeTo: host.value,
-  })
-  host.value.appendChild(app.canvas)
+  const instance = new Application()
+  app = instance
+  try {
+    await instance.init({
+      background: '#dbe7cf',
+      antialias: true,
+      resizeTo: host.value,
+    })
+    if (disposed || !host.value) { instance.destroy(true, { children: true }); return }
+    host.value.appendChild(app.canvas)
 
-  worldLayer = new Container()
-  app.stage.addChild(worldLayer)
-  app.stage.eventMode = 'static'
-  app.stage.hitArea = app.screen
+    worldLayer = new Container()
+    app.stage.addChild(worldLayer)
+    app.stage.eventMode = 'static'
+    app.stage.hitArea = app.screen
 
-  app.stage.on('pointerdown', () => emit('select', null))
-  app.stage.on('pointermove', (event: FederatedPointerEvent) => {
-    if (!dragging || props.mode !== 'edit') return
-    const worldX = event.global.x - (worldLayer?.position.x ?? 0)
-    const worldY = event.global.y - (worldLayer?.position.y ?? 0)
-    emit('move', dragging.id, worldX - dragging.offsetX, worldY - dragging.offsetY)
-  })
-  app.stage.on('pointerup', () => { dragging = null })
-  app.stage.on('pointerupoutside', () => { dragging = null })
+    app.stage.on('pointerdown', () => {
+      if (props.mode === 'edit') emit('select', null)
+      else host.value?.focus()
+    })
+    app.stage.on('pointermove', (event: FederatedPointerEvent) => {
+      if (!dragging || props.mode !== 'edit') return
+      const worldX = event.global.x - (worldLayer?.position.x ?? 0)
+      const worldY = event.global.y - (worldLayer?.position.y ?? 0)
+      emit('move', dragging.id, worldX - dragging.offsetX, worldY - dragging.offsetY)
+    })
+    app.stage.on('pointerup', () => { dragging = null })
+    app.stage.on('pointerupoutside', () => { dragging = null })
 
-  app.ticker.add((ticker) => {
-    if (props.mode === 'run') runStep(ticker.deltaMS / 1000)
-  })
+    app.ticker.add((ticker) => {
+      if (props.mode === 'run') runStep(ticker.deltaMS / 1000)
+    })
 
-  window.addEventListener('keydown', onKeyDown, { passive: false })
-  window.addEventListener('keyup', onKeyUp)
-  render()
+    window.addEventListener('keydown', onKeyDown, { passive: false })
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', clearKeys)
+    document.addEventListener('visibilitychange', clearKeys)
+    if (props.mode === 'run') initializeRuntime()
+    else render()
+  } catch {
+    if (!disposed) { phase.value = 'error'; error.value = '画布加载失败，请刷新页面后重试。' }
+  }
 })
 
+function clearKeys() { keys.clear() }
+
 function onKeyDown(event: KeyboardEvent) {
+  if (props.mode !== 'run' || !runtime || runtime.phase === 'finished') return
+  const target = event.target as HTMLElement | null
+  if (target?.matches('input, textarea, select, button, [contenteditable="true"]')) return
+  const controls = runtime.player.controls ?? DEFAULT_CAR_CONTROLS
+  if (!Object.values(controls).some(key => key?.toLowerCase() === event.key.toLowerCase())) return
   keys.add(event.key.toLowerCase())
-  if (event.key.startsWith('Arrow') || event.key === ' ') event.preventDefault()
+  event.preventDefault()
 }
 
 function onKeyUp(event: KeyboardEvent) {
@@ -316,14 +289,15 @@ function onKeyUp(event: KeyboardEvent) {
 }
 
 watch(() => props.mode, (mode) => {
-  activeContacts.clear()
-  runtimeProject = mode === 'run' ? structuredClone(props.project) : null
-  if (worldLayer) worldLayer.position.set(0, 0)
-  if (mode === 'run' && runtimeProject) {
-    const player = runtimeProject.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole !== 'computer')
-    if (player) followPlayer(player)
+  if (mode === 'run') initializeRuntime()
+  else {
+    clearKeys()
+    runtime = null
+    runtimeProject = null
+    error.value = ''
+    worldLayer?.position.set(0, 0)
+    render()
   }
-  render()
 })
 
 watch(() => props.project, () => {
@@ -333,14 +307,43 @@ watch(() => props.project, () => {
 watch(() => props.selectedId, render)
 
 onBeforeUnmount(() => {
+  disposed = true
+  clearKeys()
+  window.removeEventListener('blur', clearKeys)
+  document.removeEventListener('visibilitychange', clearKeys)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
-  app?.destroy(true)
+  if (worldLayer) app?.destroy(true, { children: true })
   app = null
   worldLayer = null
 })
 </script>
 
 <template>
-  <div ref="host" class="world-canvas" />
+  <div class="race-stage">
+    <div ref="host" class="world-canvas" tabindex="0" aria-label="赛车画布" />
+    <template v-if="mode === 'run'">
+      <div v-if="!error" class="race-hud">
+        <strong>{{ phase === 'countdown' ? '准备出发' : phase === 'finished' ? '比赛结束' : '比赛中' }} · {{ elapsed.toFixed(1) }} 秒</strong>
+        <span>{{ controlHint }}</span>
+        <div class="race-standings" aria-label="比赛进度">
+          <span v-for="car in racers" :key="car.id">{{ car.name }} · {{ car.finished ? '已完赛' : `速度 ${car.speed} · 路标 ${car.checkpoint}` }}</span>
+        </div>
+      </div>
+      <div v-if="phase === 'countdown' || (phase === 'racing' && elapsed < 0.8)" class="race-countdown" role="status">{{ phase === 'countdown' ? countdown : 'GO!' }}</div>
+      <div v-if="phase === 'finished' || error" class="race-result" role="status">
+        <h2>{{ error ? '无法开始比赛' : '比赛结束' }}</h2>
+        <p>{{ error || result }}</p>
+        <button class="primary" @click="initializeRuntime">重新比赛</button>
+        <button @click="emit('edit')">进入编辑</button>
+        <button @click="emit('home')">返回首页</button>
+      </div>
+      <div v-else class="race-actions">
+        <button @click="initializeRuntime">重新比赛</button>
+        <button @click="emit('edit')">进入编辑</button>
+        <button @click="emit('home')">返回首页</button>
+      </div>
+    </template>
+    <div v-else-if="error" class="race-result" role="alert">{{ error }}</div>
+  </div>
 </template>

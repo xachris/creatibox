@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>CreatiBox 浏览器驾驶验收</title>
+<style>body{margin:0;font:14px system-ui}nav{display:flex;gap:8px;padding:8px}iframe{width:100%;height:calc(100vh - 55px);border:0}button{padding:8px}</style>
+<nav aria-label="验收按键">
+  <button data-key="ArrowUp" data-seconds="20">按住 ↑ 20 秒</button>
+  <button data-key=" " data-seconds="20">按住 Space 20 秒</button>
+  <button data-key="ArrowDown" data-seconds="1">按住 ↓ 1 秒</button>
+  <button data-key="ArrowLeft" data-seconds="0.15">按住 ← 0.15 秒</button>
+  <button data-key="ArrowRight" data-seconds="0.15">按住 → 0.15 秒</button>
+  <button id="release">松开所有按键</button>
+  <output id="status">未按键</output>
+</nav>
+<iframe src="/" title="真实 CreatiBox 应用"></iframe>
+<script type="module">
+// Dev-only manual QA fixture. Vite's production entry does not include this file.
+// Uses the actual App and keyboard event handlers, never changes runtime state.
+const frame = document.querySelector('iframe')
+const held = new Map()
+function release(key) {
+  const item = held.get(key)
+  if (!item) return
+  clearTimeout(item.timer)
+  item.target.dispatchEvent(new frame.contentWindow.KeyboardEvent('keyup', { key, bubbles: true }))
+  held.delete(key)
+  document.querySelector('output').textContent = held.size ? '按键中' : '已松开'
+}
+for (const button of document.querySelectorAll('[data-key]')) button.onclick = () => {
+  const target = frame.contentDocument.querySelector('[aria-label="赛车画布"]')
+  if (!target) { document.querySelector('output').textContent = '请先在下方完成首页到开赛'; return }
+  const key = button.dataset.key
+  release(key)
+  target.focus()
+  target.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+  held.set(key, { target, timer: setTimeout(() => release(key), Number(button.dataset.seconds) * 1000) })
+  document.querySelector('output').textContent = button.textContent
+}
+document.querySelector('#release').onclick = () => { for (const key of held.keys()) release(key) }
+</script>
+</html>

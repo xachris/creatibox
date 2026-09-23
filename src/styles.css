@@ -722,3 +722,18 @@ button:disabled { opacity: .45; cursor: default; }
   .catalog-art { min-height:220px; }
   .review-grid { grid-template-columns:1fr 1fr; }
 }
+
+/* Play view prioritizes the race; the same authoring world remains editable. */
+.playing .library, .playing .properties, .playing .topbar, .playing .statusbar, .playing .control-hint { display: none; }
+.playing .workspace { grid-template-columns: minmax(0, 1fr); }
+.race-stage { position: relative; flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.race-stage .world-canvas { outline: none; width: 100%; }
+.world-canvas canvas { display: block; }
+.race-hud { position: absolute; left: 20px; top: 16px; max-width: calc(100% - 40px); display: grid; gap: 8px; padding: 14px 18px; border-radius: 12px; background: #ffffffed; pointer-events: none; box-shadow: 0 4px 20px #0f172a18; }
+.race-hud > span, .race-standings { font-size: 13px; color: #475569; }
+.race-standings { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.race-countdown { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(72px, 12vw, 140px); font-weight: 900; color: #fff; text-shadow: 0 4px 20px #0f172a; pointer-events: none; }
+.race-actions { position: absolute; bottom: 20px; left: 20px; display: flex; gap: 8px; }
+.race-result { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100% - 40px)); padding: 28px; background: #fff; border-radius: 18px; box-shadow: 0 16px 60px #0f172a40; text-align: center; }
+.race-result button { margin: 4px; }
+.race-result p { line-height: 1.6; }

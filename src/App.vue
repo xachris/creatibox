@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cloneData } from './model/clone'
 import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
 import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
@@ -24,6 +25,7 @@ const showCreationModePicker = ref(false)
 const showRaceComposer = ref(false)
 const screen = ref<'home' | 'launch' | 'editor'>('home')
 const hasRecentProject = ref(false)
+const saveError = ref('')
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -41,7 +43,7 @@ const palette: { kind: EntityKind; label: string }[] = [
 ]
 
 function snapshot() {
-  undoStack.value.push(structuredClone(project.value))
+  undoStack.value.push(cloneData(project.value))
   if (undoStack.value.length > 60) undoStack.value.shift()
   redoStack.value = []
 }
@@ -138,7 +140,7 @@ function deleteSelected() {
 function duplicateSelected() {
   if (!selected.value || mode.value !== 'edit') return
   snapshot()
-  const clone = structuredClone(selected.value)
+  const clone = cloneData(selected.value)
   clone.id = crypto.randomUUID()
   clone.name = `${clone.name} Copy`
   clone.position.x += 28
@@ -150,7 +152,7 @@ function duplicateSelected() {
 function undo() {
   const previous = undoStack.value.pop()
   if (!previous || mode.value !== 'edit') return
-  redoStack.value.push(structuredClone(project.value))
+  redoStack.value.push(cloneData(project.value))
   project.value = previous
   selectedId.value = null
 }
@@ -158,7 +160,7 @@ function undo() {
 function redo() {
   const next = redoStack.value.pop()
   if (!next || mode.value !== 'edit') return
-  undoStack.value.push(structuredClone(project.value))
+  undoStack.value.push(cloneData(project.value))
   project.value = next
   selectedId.value = null
 }
@@ -177,6 +179,8 @@ async function openFile(event: Event) {
     snapshot()
     project.value = await importProject(file)
     selectedId.value = null
+    screen.value = 'editor'
+    mode.value = 'edit'
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '无法打开项目。')
   } finally {
@@ -185,8 +189,8 @@ async function openFile(event: Event) {
 }
 
 onMounted(async () => {
-  const saved = await loadAutosave()
-  if (saved) {
+  const saved = await loadAutosave().catch(() => { saveError.value = '无法读取本机存档，可导入项目继续。'; return undefined })
+  if (saved && screen.value === 'home') {
     project.value = saved
     hasRecentProject.value = true
   }
@@ -195,7 +199,7 @@ onMounted(async () => {
 watch(project, () => {
   window.clearTimeout(autosaveTimer)
   autosaveTimer = window.setTimeout(() => {
-    void saveAutosave(project.value)
+    void saveAutosave(project.value).then(() => { hasRecentProject.value = true }).catch(() => { saveError.value = '自动保存失败，请导出项目备份。' })
   }, 350)
 }, { deep: true })
 
@@ -226,7 +230,7 @@ function setColor(value: string) {
     @start="startRacingGame"
   />
 
-  <main v-else class="app-shell">
+  <main v-else class="app-shell" :class="{ playing: mode === 'run' }">
     <RaceComposer
       v-if="showRaceComposer"
       @close="showRaceComposer = false"
@@ -316,6 +320,8 @@ function setColor(value: string) {
           :mode="mode"
           @select="selectedId = $event"
           @move="moveEntity"
+          @edit="mode = 'edit'"
+          @home="goHome"
         />
       </section>
 
@@ -408,7 +414,7 @@ function setColor(value: string) {
     <footer class="statusbar">
       <span>对象 {{ project.world.entities.length }}</span>
       <span>规则 {{ project.world.rules.length }}</span>
-      <span>自动保存到本机浏览器</span>
+      <span>{{ saveError || '自动保存到本机浏览器' }}</span>
       <span class="status-grow" />
       <span>{{ project.world.trackPreset ?? 'custom' }} · {{ project.world.trackLength ?? 1 }} km</span>
     </footer>

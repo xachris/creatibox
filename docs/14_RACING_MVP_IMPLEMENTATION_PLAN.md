@@ -365,3 +365,27 @@ install
 → test
 → build
 ```
+
+## 11. Playable Runtime Closure (2026-09-23)
+
+- `WorldCanvas.initializeRuntime()` is the single entry for initial Run mount, Edit → Run and Restart. It creates a fresh `WorldRuntime` from authoring JSON, clears input/contact/progress state, and focuses/follows the player after Pixi initialization.
+- Runtime logic now lives under `src/runtime/`, using the existing Entity / World / Rule model. Vue/Pixi present the result; they do not own vehicle simulation rules.
+- Lifecycle: three-second countdown → racing → player Finished/Broken → result. All cars remain stationary before GO. CPU finishing does not stop the player's race. The result freezes the scene and offers Restart / Edit / Home.
+- Controls: arrows steer/accelerate/brake; Space accelerates more strongly. Down is brake-only in this MVP. Input is cleared on blur, hidden tab, mode change and restart; edit inputs retain normal keyboard behavior.
+- Cars visit ordered checkpoints before the finish interaction is eligible. This prevents instant completion on the circuit's shared start/finish. Finish transitions still require the world's `reach → finish` rule.
+- Rotated rectangles use a separating-axis collision test. Substeps limit missed collisions; AI slows for sharp turns. Generated obstacles sit beside the outgoing road instead of blocking the default curve AI route.
+- Missing player, invalid/missing trackPath, or missing finish/rule produces an actionable visible error. Renderer failure also has a visible error.
+- JSON cloning is shared by snapshots, runtime and autosave, avoiding structuredClone failures on nested Vue proxies. Runtime state never overwrites authoring state.
+
+### Regression coverage
+
+`npm test` covers initial Run mount, countdown 3/2/1/GO, edit/run/restart, camera movement, key clearing, authoring isolation, finish/result state, errors, controls and all 18 track × length × CPU-profile combinations (three opponents each).
+
+For browser held-key verification, `tests/drive.html` is a dev-only manual QA fixture. It embeds the real app and dispatches timed keyboard events to the actual canvas; it does not read or mutate runtime state. Open it with the dev server. It is not a production build entry. Native keyboard play can also be tested directly at `/`.
+
+### Current boundaries
+
+- Single lap, ordered waypoint gates; no lap selection or advanced ranking/tie resolution.
+- Simple steering and collision response; no reverse, realistic tire physics or advanced AI overtaking.
+- Motion/driver/sound preset choices remain saved. Engine audio is still a preset placeholder; this closure does not add audio synthesis.
+- Track length labels use the existing logical-world scale, not physically calibrated kilometer distances.

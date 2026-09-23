@@ -24,3 +24,11 @@ describe('world rules', () => {
     expect(car.state).toBe('Damaged')
   })
 })
+
+it('detects a rotated finish gate across the road, without early horizontal hits', () => {
+  const finish = createEntity('finish', 100, 100)
+  finish.rotation = Math.PI / 2
+  finish.size.x = 170
+  expect(intersects(createEntity('car', 100, 165), finish)).toBe(true)
+  expect(intersects(createEntity('car', 180, 100), finish)).toBe(false)
+})

@@ -125,13 +125,16 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
 
   const finishEntity = createEntity('finish', finish.x, finish.y)
   const prev = path[path.length - 2] ?? finish
+  finishEntity.size.x = 170
   finishEntity.rotation = angleBetween(prev, finish) + Math.PI / 2
   entities.push(finishEntity)
 
   for (let i = 1; i < path.length - 1; i++) {
     const p = path[i]
     if (i % 2 === 0) {
-      const obstacle = createEntity('obstacle', p.x + 35, p.y + 105)
+      // Place obstacles beside the outgoing road, never across the AI route.
+      const heading = angleBetween(p, path[i + 1])
+      const obstacle = createEntity('obstacle', p.x - Math.sin(heading) * 155, p.y + Math.cos(heading) * 155)
       entities.push(obstacle)
     }
   }

@@ -2,6 +2,18 @@
 
 ## 2026-09-23
 
+### Racing direct-start and complete race loop
+
+- Fixed both launch blockers: structuredClone on Vue proxies (including the pre-launch snapshot and autosave), and missing Runtime initialization on initial Run mount.
+- Unified run/restart initialization; added 3 → 2 → 1 → GO, input focus/cleanup, default arrows + stronger Space throttle, player camera follow, race progress/results and Restart / Edit / Home actions.
+- Extracted simulation into the shared-model WorldRuntime; fresh authoring copy for every run, bounded substeps, waypoint-gated finish rules and rotated rectangle collisions. Circuits no longer finish at spawn.
+- Fixed CPU turning and curve preset obstacle placement. All three CPU cars finish every generated track/length/difficulty combination in regression tests.
+- Added explicit missing-player/path/finish errors; kept the six-step onboarding and saved driver/motion/sound selections. Play mode prioritizes the race canvas; Home import now opens the editor and autosave enables Continue.
+- Added dependency lockfile, component and simulation regression tests, and a dev-only browser held-key fixture (`tests/drive.html`).
+- Local validation: npm install, typecheck, 31 tests and production build pass. Browser verified the complete home → review → countdown flow, player/CPU movement, scrolling camera, finish/result and fresh restart. Held-key checks use timed DOM keyboard events against the real app via the dev-only fixture.
+- Known boundaries: brake-only Down; simple single-lap waypoint AI/physics; sound families remain saved placeholders; no classroom usability claim. npm audit reports two moderate development-only Vitest/mocker advisories; no production dependency advisory was reported. A test-framework major upgrade is outside this runtime fix.
+
+
 ### Product direction reset
 
 项目从原先较复杂的“学校级科创平台”收缩为课堂优先的单机网页创作工具。

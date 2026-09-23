@@ -263,3 +263,11 @@ The onboarding succeeds when a first-time user can:
 > Play first. Create deeper when the user wants to.
 
 The editor is the engine behind the experience, not the first thing the student must understand.
+
+## 15. Direct Race Closure (2026-09-23)
+
+The six-step catalog flow is retained. Start Race now snapshots plain authoring JSON, generates the chosen world and initializes Runtime on the first Run mount. The play screen gives the canvas priority over editing panels and shows active controls, elapsed time and each car's progress.
+
+Start → 3 → 2 → 1 → GO → drive / CPU race → player's finish or breakdown → result.
+
+Restart constructs a new run from the authoring world, including a new countdown. Edit restores the authored scene. Home returns to the catalog, where the successfully saved project can be continued. Import from Home now opens the imported project in Edit mode. Missing race data never silently leaves an inert play screen.
