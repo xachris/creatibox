@@ -38,6 +38,7 @@ Entity → State → Action → Interaction → Transition
 - [对话、剧本与 TTS](docs/08_DIALOGUE_SCRIPT_AND_TTS.md)
 - [学生创作界面与 UX](docs/09_UI_UX_SPEC.md)
 - [开发执行模式与 CI 决策](docs/10_DEVELOPMENT_EXECUTION_MODES.md)
+- [对象创建三模式](docs/11_CREATION_MODES.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验
