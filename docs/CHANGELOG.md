@@ -1,5 +1,14 @@
 # CreatiBox Changelog
 
+## 2026-09-24
+
+### Animal World × Unified Race planning
+
+- Added `docs/18_ANIMAL_WORLD_UNIFIED_RACE_PLAN.md`: evolve Racing into Unified Race / Race World, with Car, Horse, Human and Sheep sharing RaceParticipant / RaceCapability, controls, waypoint AI, camera, finish, ranking and restart.
+- Defined vehicle / runner / hoofed movement styles, game-only default speeds (260 / 205 / 125 / 95), PixiJS vector visuals, and engine / hoofbeat / footstep extensions to the existing racing audio director.
+- Specified first-phase scope, model / rules / runtime refactoring, legacy-project compatibility, test matrix and success criteria. Horse + Rider is phase two; Wander / Follow / Flee / Eat / Rest remain later Animal World work.
+- Linked from README. Planning only — no implementation, runtime, UI, assets, dependencies, version or deployment changes in this commit.
+
 ## 2026-09-23
 
 ### V0.1.2 arcade collision physics (no overlap)
