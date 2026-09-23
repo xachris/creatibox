@@ -37,6 +37,7 @@ Entity → State → Action → Interaction → Transition
 - [技术选型与架构](docs/07_TECH_STACK_AND_ARCHITECTURE.md)
 - [对话、剧本与 TTS](docs/08_DIALOGUE_SCRIPT_AND_TTS.md)
 - [学生创作界面与 UX](docs/09_UI_UX_SPEC.md)
+- [开发执行模式与 CI 决策](docs/10_DEVELOPMENT_EXECUTION_MODES.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 当前阶段
