@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
-import { createEntity, createStarterProject } from './model/factory'
+import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
+import { createCar, createEntity, createStarterProject } from './model/factory'
 import type { CreatiBoxProject, EntityKind } from './model/types'
 import { exportProject, importProject, loadAutosave, saveAutosave } from './storage/projectStorage'
 
@@ -13,6 +14,7 @@ const mode = ref<'edit' | 'run'>('edit')
 const undoStack = ref<Snapshot[]>([])
 const redoStack = ref<Snapshot[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
+const showCarWizard = ref(false)
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -36,11 +38,24 @@ function snapshot() {
 
 function addEntity(kind: EntityKind) {
   if (mode.value !== 'edit') return
+  if (kind === 'car') {
+    showCarWizard.value = true
+    return
+  }
   snapshot()
   const offset = project.value.world.entities.length * 16
   const entity = createEntity(kind, 180 + (offset % 240), 140 + (offset % 160))
   project.value.world.entities.push(entity)
   selectedId.value = entity.id
+}
+
+function createGuidedCar(result: CarWizardResult) {
+  snapshot()
+  const offset = project.value.world.entities.length * 18
+  const car = createCar(result, 180 + (offset % 220), 150 + (offset % 140))
+  project.value.world.entities.push(car)
+  selectedId.value = car.id
+  showCarWizard.value = false
 }
 
 function moveEntity(id: string, x: number, y: number) {
@@ -134,6 +149,11 @@ function setColor(value: string) {
 
 <template>
   <main class="app-shell">
+    <CarWizard
+      v-if="showCarWizard"
+      @close="showCarWizard = false"
+      @create="createGuidedCar"
+    />
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">C</span>
@@ -180,7 +200,7 @@ function setColor(value: string) {
 
         <div class="tip-card">
           <strong>{{ mode === 'edit' ? '编辑模式' : '运行模式' }}</strong>
-          <p v-if="mode === 'edit'">选择对象后直接拖动。调整右侧属性，再按“运行”测试世界。</p>
+          <p v-if="mode === 'edit'">点击“赛车”会进入创建向导。先决定控制方式、速度和外形，再把它放进世界。</p>
           <p v-else>方向键或 WASD 驾驶赛车。碰墙会损伤，抵达绿色终点即完成。</p>
         </div>
       </aside>
@@ -288,7 +308,7 @@ function setColor(value: string) {
       <span>规则 {{ project.world.rules.length }}</span>
       <span>自动保存到本机浏览器</span>
       <span class="status-grow" />
-      <span>方向键 / WASD 驾驶</span>
+      <span>赛车按键由创建者自己定义</span>
     </footer>
   </main>
 </template>
