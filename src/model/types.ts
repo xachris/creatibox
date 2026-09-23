@@ -1,9 +1,17 @@
 export type EntityKind = 'car' | 'road' | 'wall' | 'obstacle' | 'start' | 'finish'
 export type EntityState = 'Idle' | 'Moving' | 'Damaged' | 'Broken' | 'Finished'
+export type CarShape = 'classic' | 'sport' | 'boxy'
 
 export interface Vec2 {
   x: number
   y: number
+}
+
+export interface ControlScheme {
+  accelerate: string
+  brake: string
+  left: string
+  right: string
 }
 
 export interface Entity {
@@ -20,6 +28,9 @@ export interface Entity {
   maxDurability: number
   speed: number
   maxSpeed: number
+  controls?: ControlScheme
+  wheelCount?: number
+  carShape?: CarShape
 }
 
 export interface Rule {
