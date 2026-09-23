@@ -76,3 +76,8 @@ Added:
 - Howler.js for sound playback
 - Tone.js reserved for music creation
 - Web Speech API SpeechSynthesis for initial TTS
+
+
+### Development execution mode
+
+Recorded three implementation modes and selected Mode C for the current MVP: Chat + GitHub + GitHub Actions.
