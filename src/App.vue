@@ -2,7 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
 import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
-import { createCar, createEntity, createStarterProject } from './model/factory'
+import CreationModePicker from './components/CreationModePicker.vue'
+import { createCar, createEntity, createRandomCar, createStarterProject } from './model/factory'
 import type { CreatiBoxProject, EntityKind } from './model/types'
 import { exportProject, importProject, loadAutosave, saveAutosave } from './storage/projectStorage'
 
@@ -15,6 +16,7 @@ const undoStack = ref<Snapshot[]>([])
 const redoStack = ref<Snapshot[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const showCarWizard = ref(false)
+const showCreationModePicker = ref(false)
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -39,7 +41,7 @@ function snapshot() {
 function addEntity(kind: EntityKind) {
   if (mode.value !== 'edit') return
   if (kind === 'car') {
-    showCarWizard.value = true
+    showCreationModePicker.value = true
     return
   }
   snapshot()
@@ -49,12 +51,36 @@ function addEntity(kind: EntityKind) {
   selectedId.value = entity.id
 }
 
-function createGuidedCar(result: CarWizardResult) {
+function placeCreatedCar(car: ReturnType<typeof createCar>) {
   snapshot()
-  const offset = project.value.world.entities.length * 18
-  const car = createCar(result, 180 + (offset % 220), 150 + (offset % 140))
   project.value.world.entities.push(car)
   selectedId.value = car.id
+}
+
+function chooseCarCreationMode(choice: 'default' | 'random' | 'guided') {
+  showCreationModePicker.value = false
+
+  if (choice === 'guided') {
+    showCarWizard.value = true
+    return
+  }
+
+  const offset = project.value.world.entities.length * 18
+  const x = 180 + (offset % 220)
+  const y = 150 + (offset % 140)
+
+  if (choice === 'random') {
+    placeCreatedCar(createRandomCar(x, y))
+    return
+  }
+
+  placeCreatedCar(createEntity('car', x, y))
+}
+
+function createGuidedCar(result: CarWizardResult) {
+  const offset = project.value.world.entities.length * 18
+  const car = createCar(result, 180 + (offset % 220), 150 + (offset % 140))
+  placeCreatedCar(car)
   showCarWizard.value = false
 }
 
@@ -149,6 +175,11 @@ function setColor(value: string) {
 
 <template>
   <main class="app-shell">
+    <CreationModePicker
+      v-if="showCreationModePicker"
+      @close="showCreationModePicker = false"
+      @choose="chooseCarCreationMode"
+    />
     <CarWizard
       v-if="showCarWizard"
       @close="showCarWizard = false"
@@ -200,7 +231,7 @@ function setColor(value: string) {
 
         <div class="tip-card">
           <strong>{{ mode === 'edit' ? '编辑模式' : '运行模式' }}</strong>
-          <p v-if="mode === 'edit'">点击“赛车”会进入创建向导。先决定控制方式、速度和外形，再把它放进世界。</p>
+          <p v-if="mode === 'edit'">点击“赛车”可选默认、随机或指南三种创建方式。所有生成结果都能继续修改。</p>
           <p v-else>方向键或 WASD 驾驶赛车。碰墙会损伤，抵达绿色终点即完成。</p>
         </div>
       </aside>
