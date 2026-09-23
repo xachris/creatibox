@@ -2,6 +2,12 @@
 
 ## 2026-09-23
 
+### Racing audio / SFX system design
+
+- Added `docs/17_RACING_AUDIO_SFX_DESIGN.md`: event map for countdown/GO, engine idle–accel–cruise–coast, brake, collision, win/place/broken; layered architecture; Light/Sport/Electric family plan; Howler-based `AudioDirector` hooks; phased implementation A→D.
+- Design only — no audio library, assets, or runtime playback code in this change. Existing `soundPreset` remains the student-facing family choice once Phase A+ lands.
+- Linked from README.
+
 ### Cursor agent handover work log
 
 - Established `docs/16_CURSOR_AGENT_WORK_LOG.md` as the ongoing Cursor Cloud Agent work journal after taking over from ChatGPT-side GitHub development.

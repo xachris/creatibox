@@ -44,6 +44,7 @@ Entity → State → Action → Interaction → Transition
 - [赛车 MVP 实施计划](docs/14_RACING_MVP_IMPLEMENTATION_PLAN.md)
 - [赛车启动与首页流程](docs/15_RACING_ONBOARDING_FLOW.md)
 - [Cursor 代理工作记录](docs/16_CURSOR_AGENT_WORK_LOG.md)
+- [赛车音效系统设计](docs/17_RACING_AUDIO_SFX_DESIGN.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验
