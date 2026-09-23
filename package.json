@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "typecheck": "vue-tsc -b",
-    "test": "vitest run"
+    "test": "vitest run",
+    "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "idb": "^8.0.0",
     "pixi.js": "^8.0.0",
-    "vue": "^3.5.0"
+    "vue": "^3.5.0",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
