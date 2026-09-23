@@ -43,6 +43,7 @@ export interface Entity {
   soundPreset?: SoundPreset
   opponentProfile?: OpponentProfile
   waypointIndex?: number
+  driverPreset?: 'driver-a' | 'driver-b' | 'driver-c'
 }
 
 export interface Rule {
