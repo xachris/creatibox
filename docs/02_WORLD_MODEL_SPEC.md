@@ -447,3 +447,31 @@ Car
 - Creator 只是对底层能力的不同组合。
 - 允许对象从无到有、变化、受损、修复、毁灭。
 - 世界规则必须可以用数据描述，而不是依赖页面中的硬编码逻辑。
+
+
+## 13. Multi-Entity Control
+
+CreatiBox is single-user but may control multiple entities.
+
+A student may select one entity, multiple entities, or an Entity Group such as:
+- convoy
+- army
+- team
+- herd
+- fleet
+
+Groups may receive shared actions while each entity keeps its own state.
+
+This is not network multiplayer.
+
+## 14. Narrative Actions
+
+World entities may use narrative actions including:
+- Say
+- Narrate
+- ShowText
+- PresentChoice
+
+Dialogue may trigger later state changes and world actions.
+
+CreatiBox therefore supports both physical interactions and narrative interactions.
