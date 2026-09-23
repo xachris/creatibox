@@ -2,6 +2,13 @@
 
 ## 2026-09-23
 
+### V0.1.1 smoother racing SFX timbre
+
+- Rebuilt synth engine: soft-saw / triangle / sine layers, filtered noise, seamless loop crossfades, soft limiting.
+- Softened countdown / finish / brake / collision / UI cues (less square-wave harshness).
+- Package version bumped to `0.1.1`.
+
+
 ### Racing audio and SFX playback (Phase A–C)
 
 - Added UI feedback SFX (`uiSelect` / `uiStep` / `uiConfirm`) for home catalog, racing launch choices, wizard next/back, and start-race confirm.

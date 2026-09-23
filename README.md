@@ -57,7 +57,7 @@ https://creatibox-web-production.up.railway.app
 
 ## 当前阶段
 
-**V0.1 MVP 开发中**
+**V0.1.1 MVP 开发中**（音效打磨版）
 
 第一轮可运行骨架已经进入仓库，并通过 GitHub Actions 自动验证。
 

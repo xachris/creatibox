@@ -175,8 +175,8 @@ class AudioDirector {
 
     if (ratio < 0.03 && !accelerating) {
       if (!this.idle.playing()) this.idle.play()
-      this.idle.volume(0.35)
-      this.idle.rate(0.92)
+      this.idle.volume(0.28)
+      this.idle.rate(0.94)
       if (this.move.playing()) this.move.volume(0)
       if (this.brakeLoop?.playing()) this.brakeLoop.stop()
       return
@@ -184,15 +184,15 @@ class AudioDirector {
 
     if (!this.move.playing()) this.move.play()
     if (!this.idle.playing()) this.idle.play()
-    this.idle.volume(Math.max(0, 0.2 * (1 - ratio)))
-    const rate = (this.preset === 'electric' ? 0.85 : 0.75) + ratio * (accelerating ? 0.95 : 0.7)
-    const volume = (0.28 + ratio * 0.65) * (accelerating ? 1 : state.braking ? 0.75 : 0.88)
+    this.idle.volume(Math.max(0, 0.16 * (1 - ratio)))
+    const rate = (this.preset === 'electric' ? 0.88 : 0.78) + ratio * (accelerating ? 0.85 : 0.62)
+    const volume = (0.24 + ratio * 0.55) * (accelerating ? 1 : state.braking ? 0.72 : 0.86)
     this.move.rate(rate)
     this.move.volume(volume)
 
     if (braking) {
       if (this.brakeLoop && !this.brakeLoop.playing()) {
-        this.brakeLoop.volume(0.45)
+        this.brakeLoop.volume(0.34)
         this.brakeLoop.play()
       }
     } else if (this.brakeLoop?.playing()) {
@@ -262,9 +262,9 @@ class AudioDirector {
     this.idle?.unload()
     this.move?.unload()
     this.brakeLoop?.unload()
-    this.idle = this.makeHowl(bank.loops.engineIdle, { loop: true, volume: 0.28 })
+    this.idle = this.makeHowl(bank.loops.engineIdle, { loop: true, volume: 0.24 })
     this.move = this.makeHowl(bank.loops.engineMove, { loop: true, volume: 0 })
-    this.brakeLoop = this.makeHowl(bank.oneShots.brake, { loop: true, volume: 0.4 })
+    this.brakeLoop = this.makeHowl(bank.oneShots.brake, { loop: true, volume: 0.32 })
   }
 
   private stopEngine() {
