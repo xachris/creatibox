@@ -42,6 +42,7 @@ Entity → State → Action → Interaction → Transition
 - [赛车 MVP 规范](docs/12_RACING_MVP_SPEC.md)
 - [预设拼接系统](docs/13_PRESET_COMPOSITION_SYSTEM.md)
 - [赛车 MVP 实施计划](docs/14_RACING_MVP_IMPLEMENTATION_PLAN.md)
+- [赛车启动与首页流程](docs/15_RACING_ONBOARDING_FLOW.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验
