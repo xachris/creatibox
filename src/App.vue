@@ -210,6 +210,8 @@ function setColor(value: string) {
 </script>
 
 <template>
+  <input ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
+
   <HomeCatalog
     v-if="screen === 'home'"
     :has-recent-project="hasRecentProject"
@@ -263,7 +265,6 @@ function setColor(value: string) {
         <button v-else class="danger" @click="mode = 'edit'">■ 停止并重置</button>
       </div>
 
-      <input ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
     </header>
 
     <section class="workspace">
