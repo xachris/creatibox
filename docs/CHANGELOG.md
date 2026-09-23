@@ -2,6 +2,12 @@
 
 ## 2026-09-23
 
+### Cursor agent handover work log
+
+- Established `docs/16_CURSOR_AGENT_WORK_LOG.md` as the ongoing Cursor Cloud Agent work journal after taking over from ChatGPT-side GitHub development.
+- Document captures the handover baseline (`main` @ `912a198`), recording rules for every future session, known boundaries, and a reverse-chronological session log.
+- Linked from README; product change summaries continue to live in this changelog — the work log covers process and handoff continuity.
+
 ### Racing direct-start and complete race loop
 
 - Fixed both launch blockers: structuredClone on Vue proxies (including the pre-launch snapshot and autosave), and missing Runtime initialization on initial Run mount.
