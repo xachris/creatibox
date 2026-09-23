@@ -34,6 +34,8 @@ Entity → State → Action → Interaction → Transition
 - [数据结构建议](docs/04_DATA_SCHEMA.md)
 - [开发路线图](docs/05_DEVELOPMENT_ROADMAP.md)
 - [开放世界自由度与边界](docs/06_OPEN_WORLD_BOUNDARIES.md)
+- [技术选型与架构](docs/07_TECH_STACK_AND_ARCHITECTURE.md)
+- [对话、剧本与 TTS](docs/08_DIALOGUE_SCRIPT_AND_TTS.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 当前阶段
