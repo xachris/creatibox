@@ -151,3 +151,55 @@ UI、Creator 和 Runtime 不应该把世界规则写死在页面逻辑中。
 - Creator UI 只负责编辑数据。
 - Runtime 只负责解释数据并运行。
 - 后续新增音乐、建筑、故事 Creator 时应尽量复用同一 Project / World / Entity / Rule 结构。
+
+
+## 10. Entity Group
+
+Example:
+
+```json
+{
+  "id": "convoy_001",
+  "type": "Group",
+  "members": ["car_001", "car_002", "car_003"],
+  "capabilities": ["MoveTo", "Follow", "Stop"]
+}
+```
+
+## 11. Dialogue Node
+
+Example:
+
+```json
+{
+  "id": "dialogue_001",
+  "speakerEntityId": "character_001",
+  "mode": "dialogue",
+  "text": "The race begins now.",
+  "tts": {
+    "enabled": true,
+    "lang": "en-US",
+    "voicePreference": null,
+    "rate": 1,
+    "pitch": 1
+  },
+  "next": "dialogue_002"
+}
+```
+
+Projects should store voice preferences, not assume that a specific device voice will exist everywhere.
+
+## 12. Script Step
+
+Example:
+
+```json
+{
+  "type": "sequence",
+  "steps": [
+    {"action": "Narrate", "dialogueId": "dialogue_001"},
+    {"action": "PlaySound", "assetId": "start_sound"},
+    {"action": "Move", "entityId": "car_001"}
+  ]
+}
+```
