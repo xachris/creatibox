@@ -40,6 +40,14 @@ Entity → State → Action → Interaction → Transition
 - [开发执行模式与 CI 决策](docs/10_DEVELOPMENT_EXECUTION_MODES.md)
 - [变更记录](docs/CHANGELOG.md)
 
+## 在线体验
+
+Railway Production:
+
+https://creatibox-web-production.up.railway.app
+
+当前为 V0.1 MVP 测试环境。项目数据默认保存在当前浏览器 IndexedDB，也可导出为 `.creatibox` 文件。
+
 ## 当前阶段
 
 **V0.1 MVP 开发中**
