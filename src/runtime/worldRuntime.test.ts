@@ -105,6 +105,25 @@ describe('world run lifecycle', () => {
     expect(Math.hypot(run.player.position.x - other.position.x, run.player.position.y - other.position.y)).toBeGreaterThan(40)
   })
 
+  it('exposes a new player collision for one public step so SFX cannot miss it', () => {
+    const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 1 }))
+    const other = run.cars.find(c => c.controlRole === 'computer')!
+    run.player.position = { x: 200, y: 200 }
+    other.position = { x: 250, y: 200 }
+    run.player.rotation = 0
+    other.rotation = 0
+    run.player.speed = 200
+    other.speed = 0
+    run.phase = 'racing'
+    run.countdown = 0
+
+    run.step(1 / 60, idle)
+    expect([...run.collisionEvents].some(key => key.includes(run.player.id))).toBe(true)
+
+    run.step(1 / 60, idle)
+    expect(run.collisionEvents.size).toBe(0)
+  })
+
   it('lets a hard hit shove the other car and only damages on hard impacts', () => {
     const run = new WorldRuntime(createRaceProject({ ...defaults, opponents: 1 }))
     const other = run.cars.find(c => c.controlRole === 'computer')!

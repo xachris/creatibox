@@ -10,7 +10,7 @@
 - 记录每次开发会话改了什么、为什么改、怎么验证
 - 留下未完成项与已知边界，方便下一次无缝续上
 
-产品决策与功能变更的正式摘要仍写入 `docs/CHANGELOG.md`。  
+产品决策与功能变更的正式摘要仍写入 `docs/CHANGELOG.md`。
 本文件侧重**过程与交接**。
 
 ---
@@ -45,12 +45,12 @@
 - 前序开发：由 ChatGPT 在 GitHub 侧推进；因额度不足移交 Cursor
 - 接手时分支：`main` @ `912a198`（`fix: complete direct-start racing runtime and replay loop`）
 - 工作区：干净，与 `origin/main` 同步
-- 线上体验：https://creatibox-web-production.up.railway.app  
+- 线上体验：https://creatibox-web-production.up.railway.app
   （部署由 Railway ↔ GitHub 侧配置；本代理环境**未**接入 Railway 控制台）
 
 ### 3.2 产品定位（接手时已冻结）
 
-CreatiBox：面向中小学生的单机网页创作平台。  
+CreatiBox：面向中小学生的单机网页创作平台。
 底层是可扩展的 **2D Interactive World Builder**；第一版以 **Racing Creator** 验证入口。
 
 世界语言：

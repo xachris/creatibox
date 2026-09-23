@@ -36,7 +36,6 @@ let dragging: { id: string; offsetX: number; offsetY: number } | null = null
 const keys = new Set<string>()
 const muted = ref(raceAudio.isMuted())
 let previousPhase: string | null = null
-let audioBootstrapped = false
 
 
 
@@ -219,7 +218,7 @@ function syncRaceAudio() {
       accelerating,
       braking,
     })
-    raceAudio.onContacts(runtime.contacts)
+    raceAudio.onContacts(runtime.collisionEvents)
   }
   if (runtime.phase === 'finished' && previousPhase !== 'finished') {
     if (player.state === 'Broken') raceAudio.onFinish('broken')
@@ -247,7 +246,6 @@ function initializeRuntime() {
     previousPhase = null
     raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id)
     muted.value = raceAudio.isMuted()
-    audioBootstrapped = true
     const c = runtime.player.controls ?? DEFAULT_CAR_CONTROLS
     const label = (key?: string) => key === ' ' ? 'Space' : ({ arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→' }[key?.toLowerCase() ?? ''] ?? key?.toUpperCase() ?? '无')
     controlHint.value = `${label(c.left)} / ${label(c.right)} 转向 · ${label(c.accelerate)} 前进 · ${label(c.brake)} 刹车 · ${label(c.primary)} 强加速`

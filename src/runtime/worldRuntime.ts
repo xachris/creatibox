@@ -24,6 +24,8 @@ export class WorldRuntime {
   readonly player: Entity
   readonly cars: Entity[]
   readonly contacts = new Set<string>()
+  /** New impact contacts observed during the latest public step (for SFX/UI). */
+  readonly collisionEvents = new Set<string>()
   /** Last time an impulse/damage fired for a contact pair. */
   readonly impulseAt = new Map<string, number>()
   readonly finishOrder: string[] = []
@@ -52,6 +54,7 @@ export class WorldRuntime {
   }
 
   step(seconds: number, keys: ReadonlySet<string>) {
+    this.collisionEvents.clear()
     if (!Number.isFinite(seconds) || seconds <= 0 || this.phase === 'finished') return
     // Bound background-tab gaps and substep movement to avoid tunneling.
     let remaining = Math.min(seconds, 0.1)
@@ -83,7 +86,16 @@ export class WorldRuntime {
     }
 
     // Resolve solids after movement so overlaps never persist into the next frame.
-    resolvePhysics(world.entities, world.rules, this.contacts, this.impulseAt, this.elapsed, path, this.finishOrder)
+    resolvePhysics(
+      world.entities,
+      world.rules,
+      this.contacts,
+      this.collisionEvents,
+      this.impulseAt,
+      this.elapsed,
+      path,
+      this.finishOrder,
+    )
 
     if (this.player.state === 'Finished' || this.player.state === 'Broken') {
       this.phase = 'finished'
@@ -239,6 +251,7 @@ function resolvePair(
   b: Entity,
   rules: CreatiBoxProject['world']['rules'],
   activeContacts: Set<string>,
+  collisionEvents: Set<string>,
   impulseAt: Map<string, number>,
   elapsed: number,
   finishOrder: string[],
@@ -288,6 +301,7 @@ function resolvePair(
   // Impulse + damage once per cooled contact enter (not every separation pass / grind tick).
   if (isNew && cooledDown && !impulseThisFrame.has(key)) {
     impulseThisFrame.add(key)
+    collisionEvents.add(key)
     impulseAt.set(key, elapsed)
     applyImpact(a, b, nx, ny, closing)
     fireDamageRules(a, b, rules, closing)
@@ -303,6 +317,7 @@ export function resolvePhysics(
   entities: Entity[],
   rules: CreatiBoxProject['world']['rules'],
   activeContacts: Set<string>,
+  collisionEvents: Set<string>,
   impulseAt: Map<string, number>,
   elapsed: number,
   path: Vec2[],
@@ -318,6 +333,7 @@ export function resolvePhysics(
           entities[j]!,
           rules,
           activeContacts,
+          collisionEvents,
           impulseAt,
           elapsed,
           finishOrder,

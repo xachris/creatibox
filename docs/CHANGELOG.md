@@ -8,6 +8,8 @@
 - Car–car hits shove both vehicles apart and damp the striker; hard hits apply light damage.
 - Walls / obstacles bounce and scrape-damp; broken wrecks stay solid but can be shoved clear; finished cars ghost the finish line.
 - Soft grind no longer melts durability (impact cooldown + closing-speed gate). Spawn grid spaced so the grid never starts stacked.
+- Review fix: collision SFX now consumes a dedicated one-step impact event, so iterative separation cannot clear the sound trigger in the same frame.
+- Removed the unrestricted Vite development-host setting; tunnel hosts must be explicitly allowed when needed.
 - Package version bumped to `0.1.2`.
 
 
@@ -29,7 +31,7 @@
 - Player engine: idle + move loops shaped by speed / throttle / brake; Light / Sport / Electric families differ in pitch and texture.
 - Collision one-shots with cooldown; classroom mute toggle on the race HUD (session-persisted).
 - Unlock on Start Race / Run click to satisfy browser autoplay rules.
-- Tests: 4 director unit tests; WorldCanvas keeps mute control in run mode.
+- Tests: 6 director unit tests plus runtime/component coverage; WorldCanvas keeps mute control in run mode.
 
 
 ### Racing audio / SFX system design
