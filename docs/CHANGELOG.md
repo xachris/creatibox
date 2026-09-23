@@ -52,3 +52,27 @@ Entity → State → Action → Interaction → Transition
 - Interactive Levels
 
 这些 Creator 最终应能够组合进入同一个世界。
+
+
+### Multi-entity and narrative model
+
+Clarified that "multi-person" means single-user multi-entity control, not network multiplayer.
+
+Added:
+- Entity Groups such as convoy, army, herd and team
+- Dialogue and narration as world actions
+- manually authored scripts
+- optional browser TTS
+- text-only fallback when TTS is unavailable
+
+### Technical stack locked for V0.1
+
+- TypeScript
+- Vue 3
+- Vite
+- PixiJS 8
+- Blockly
+- IndexedDB + JSON
+- Howler.js for sound playback
+- Tone.js reserved for music creation
+- Web Speech API SpeechSynthesis for initial TTS
