@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { RacePresetOptions } from '../model/raceGenerator'
+import { raceAudio } from '../media/sound/audioDirector'
 
 export type DriverPreset = 'driver-a' | 'driver-b' | 'driver-c'
 
@@ -41,19 +42,36 @@ const driverNames = {
   'driver-c': 'Kai',
 }
 
+function choose(action: () => void) {
+  raceAudio.playUi('select')
+  action()
+}
+
 function next() {
+  raceAudio.playUi('step')
   step.value = Math.min(6, step.value + 1)
 }
 
 function previous() {
+  raceAudio.playUi('step')
   step.value = Math.max(1, step.value - 1)
+}
+
+function cancel() {
+  raceAudio.playUi('select')
+  emit('cancel')
+}
+
+function startRace() {
+  raceAudio.playUi('confirm')
+  emit('start', { ...draft })
 }
 </script>
 
 <template>
   <section class="launch-screen">
     <header class="launch-topbar">
-      <button class="ghost-button" @click="emit('cancel')">← 返回目录</button>
+      <button class="ghost-button" @click="cancel">← 返回目录</button>
       <div class="launch-progress-copy">
         <strong>赛车游戏</strong>
         <span>步骤 {{ step }} / 6</span>
@@ -77,7 +95,7 @@ function previous() {
             v-for="shape in ['classic','sport','boxy']"
             :key="shape"
             :class="{ selected: draft.carShape === shape }"
-            @click="draft.carShape = shape as 'classic'|'sport'|'boxy'"
+            @click="choose(() => { draft.carShape = shape as 'classic'|'sport'|'boxy' })"
           >
             <div class="car-choice-preview" :class="shape">
               <div class="car-choice-body" :style="{ background: draft.color === 'red' ? '#b91c1c' : draft.color === 'blue' ? '#2563eb' : '#f59e0b' }" />
@@ -90,9 +108,9 @@ function previous() {
 
         <div class="color-picker-row">
           <span>颜色</span>
-          <button class="color-dot red" :class="{ selected: draft.color === 'red' }" @click="draft.color='red'" />
-          <button class="color-dot blue" :class="{ selected: draft.color === 'blue' }" @click="draft.color='blue'" />
-          <button class="color-dot yellow" :class="{ selected: draft.color === 'yellow' }" @click="draft.color='yellow'" />
+          <button class="color-dot red" :class="{ selected: draft.color === 'red' }" @click="choose(() => { draft.color='red' })" />
+          <button class="color-dot blue" :class="{ selected: draft.color === 'blue' }" @click="choose(() => { draft.color='blue' })" />
+          <button class="color-dot yellow" :class="{ selected: draft.color === 'yellow' }" @click="choose(() => { draft.color='yellow' })" />
         </div>
       </section>
 
@@ -102,7 +120,7 @@ function previous() {
             v-for="(name, key) in driverNames"
             :key="key"
             :class="{ selected: draft.driver === key }"
-            @click="draft.driver = key as DriverPreset"
+            @click="choose(() => { draft.driver = key as DriverPreset })"
           >
             <div class="driver-avatar" :class="key">
               <span class="driver-head" />
@@ -117,17 +135,17 @@ function previous() {
 
       <section v-else-if="step === 3" class="launch-step">
         <div class="track-grid">
-          <button :class="{ selected: draft.track === 'straight' }" @click="draft.track='straight'">
+          <button :class="{ selected: draft.track === 'straight' }" @click="choose(() => { draft.track='straight' })">
             <div class="track-mini straight"><span /></div>
             <strong>直道</strong>
             <span>最简单，专注速度</span>
           </button>
-          <button :class="{ selected: draft.track === 'curve' }" @click="draft.track='curve'">
+          <button :class="{ selected: draft.track === 'curve' }" @click="choose(() => { draft.track='curve' })">
             <div class="track-mini curve"><span /></div>
             <strong>缓弯</strong>
             <span>需要真正转向</span>
           </button>
-          <button :class="{ selected: draft.track === 'circuit' }" @click="draft.track='circuit'">
+          <button :class="{ selected: draft.track === 'circuit' }" @click="choose(() => { draft.track='circuit' })">
             <div class="track-mini circuit"><span /></div>
             <strong>环形</strong>
             <span>更像完整比赛</span>
@@ -135,8 +153,8 @@ function previous() {
         </div>
         <div class="length-row">
           <span>赛道长度</span>
-          <button :class="{ selected: draft.length === 1 }" @click="draft.length=1">1 km</button>
-          <button :class="{ selected: draft.length === 2 }" @click="draft.length=2">2 km</button>
+          <button :class="{ selected: draft.length === 1 }" @click="choose(() => { draft.length=1 })">1 km</button>
+          <button :class="{ selected: draft.length === 2 }" @click="choose(() => { draft.length=2 })">2 km</button>
         </div>
       </section>
 
@@ -144,17 +162,17 @@ function previous() {
         <div class="opponent-picker">
           <span>电脑对手</span>
           <div class="number-pills">
-            <button v-for="n in [0,1,2,3]" :key="n" :class="{ selected: draft.opponents === n }" @click="draft.opponents=n as 0|1|2|3">{{ n }}</button>
+            <button v-for="n in [0,1,2,3]" :key="n" :class="{ selected: draft.opponents === n }" @click="choose(() => { draft.opponents=n as 0|1|2|3 })">{{ n }}</button>
           </div>
         </div>
         <div class="difficulty-grid">
-          <button :class="{ selected: draft.difficulty === 'easy' }" @click="draft.difficulty='easy'">
+          <button :class="{ selected: draft.difficulty === 'easy' }" @click="choose(() => { draft.difficulty='easy' })">
             <strong>Easy</strong><span>比较慢，适合第一次</span>
           </button>
-          <button :class="{ selected: draft.difficulty === 'normal' }" @click="draft.difficulty='normal'">
+          <button :class="{ selected: draft.difficulty === 'normal' }" @click="choose(() => { draft.difficulty='normal' })">
             <strong>Normal</strong><span>速度和转向比较均衡</span>
           </button>
-          <button :class="{ selected: draft.difficulty === 'fast' }" @click="draft.difficulty='fast'">
+          <button :class="{ selected: draft.difficulty === 'fast' }" @click="choose(() => { draft.difficulty='fast' })">
             <strong>Fast</strong><span>电脑车更快</span>
           </button>
         </div>
@@ -164,14 +182,14 @@ function previous() {
         <div class="feel-grid">
           <div>
             <h3>动效</h3>
-            <button :class="{ selected: draft.motion === 'clean' }" @click="draft.motion='clean'">Clean</button>
-            <button :class="{ selected: draft.motion === 'dynamic' }" @click="draft.motion='dynamic'">Dynamic</button>
+            <button :class="{ selected: draft.motion === 'clean' }" @click="choose(() => { draft.motion='clean' })">Clean</button>
+            <button :class="{ selected: draft.motion === 'dynamic' }" @click="choose(() => { draft.motion='dynamic' })">Dynamic</button>
           </div>
           <div>
             <h3>声音</h3>
-            <button :class="{ selected: draft.sound === 'light' }" @click="draft.sound='light'">Light</button>
-            <button :class="{ selected: draft.sound === 'sport' }" @click="draft.sound='sport'">Sport</button>
-            <button :class="{ selected: draft.sound === 'electric' }" @click="draft.sound='electric'">Electric</button>
+            <button :class="{ selected: draft.sound === 'light' }" @click="choose(() => { draft.sound='light' })">Light</button>
+            <button :class="{ selected: draft.sound === 'sport' }" @click="choose(() => { draft.sound='sport' })">Sport</button>
+            <button :class="{ selected: draft.sound === 'electric' }" @click="choose(() => { draft.sound='electric' })">Electric</button>
           </div>
         </div>
       </section>
@@ -201,7 +219,7 @@ function previous() {
       <button v-if="step > 1" @click="previous">上一步</button>
       <span />
       <button v-if="step < 6" class="primary big-primary" @click="next">继续</button>
-      <button v-else class="primary start-race-button" @click="emit('start', { ...draft })">🏁 直接开赛</button>
+      <button v-else class="primary start-race-button" @click="startRace">🏁 直接开赛</button>
     </footer>
   </section>
 </template>

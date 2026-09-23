@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { raceAudio } from '../media/sound/audioDirector'
+
 defineProps<{ hasRecentProject: boolean }>()
 
 const emit = defineEmits<{
@@ -6,6 +8,21 @@ const emit = defineEmits<{
   continue: []
   import: []
 }>()
+
+function openRacing() {
+  raceAudio.playUi('confirm')
+  emit('racing')
+}
+
+function openContinue() {
+  raceAudio.playUi('select')
+  emit('continue')
+}
+
+function openImport() {
+  raceAudio.playUi('select')
+  emit('import')
+}
 </script>
 
 <template>
@@ -28,7 +45,7 @@ const emit = defineEmits<{
       </div>
 
       <div class="catalog-grid">
-        <button class="catalog-card racing-card" @click="emit('racing')">
+        <button class="catalog-card racing-card" @click="openRacing">
           <div class="catalog-art">
             <div class="road-preview" />
             <div class="car-preview red" />
@@ -53,8 +70,8 @@ const emit = defineEmits<{
       </div>
 
       <div class="home-secondary-actions">
-        <button v-if="hasRecentProject" @click="emit('continue')">继续上次项目</button>
-        <button @click="emit('import')">导入 .creatibox</button>
+        <button v-if="hasRecentProject" @click="openContinue">继续上次项目</button>
+        <button @click="openImport">导入 .creatibox</button>
       </div>
     </main>
   </section>

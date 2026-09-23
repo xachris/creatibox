@@ -79,15 +79,25 @@ class AudioDirector {
 
   /** Must run inside a user gesture so browsers allow playback. */
   unlock() {
-    if (this.unlocked) return
+    if (this.unlocked) {
+      try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
+      return
+    }
     this.unlocked = true
     if (this.masterVolume <= 0) this.masterVolume = 0.7
     Howler.mute(this.muted)
     Howler.volume(this.masterVolume)
     try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
     this.ensureUiSounds()
-    // Audible unlock chirp also resumes AudioContext in strict browsers.
-    this.playOneShot('countdownTick', 0.35)
+  }
+
+  /** UI feedback while choosing cars / tracks / steps. */
+  playUi(kind: 'select' | 'step' | 'confirm' = 'select') {
+    this.unlock()
+    if (this.muted) return
+    const id = kind === 'confirm' ? 'uiConfirm' : kind === 'step' ? 'uiStep' : 'uiSelect'
+    const volume = kind === 'confirm' ? 0.8 : kind === 'step' ? 0.55 : 0.5
+    this.playOneShot(id, volume)
   }
 
   beginRace(soundPreset: SoundPreset, playerId: string) {
@@ -237,10 +247,10 @@ class AudioDirector {
   }
 
   private ensureUiSounds() {
-    if (this.oneShots.has('countdownTick')) return
     const ui = getUiOneShots()
     for (const [id, src] of Object.entries(ui) as [OneShotId, string][]) {
       if (id === 'brake') continue
+      if (this.oneShots.has(id)) continue
       this.oneShots.set(id, this.makeHowl(src, { volume: 0.7 }))
     }
   }

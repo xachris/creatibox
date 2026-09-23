@@ -9,6 +9,9 @@ export type OneShotId =
   | 'finishBroken'
   | 'collision'
   | 'brake'
+  | 'uiSelect'
+  | 'uiStep'
+  | 'uiConfirm'
 
 export type LoopId = 'engineIdle' | 'engineMove'
 
@@ -114,6 +117,27 @@ function buildUiBank(): Record<OneShotId, string> {
       mixSamples(
         renderTone(0.35, 900, { type: 'noise', gain: 0.2, attack: 0.02, release: 0.15 }),
         renderTone(0.3, 240, { type: 'saw', gain: 0.12, slideTo: 160, release: 0.15 }),
+      ),
+    ),
+    // Soft pop for picking a car / driver / track option.
+    uiSelect: encodeWavDataUri(
+      mixSamples(
+        renderTone(0.06, 720, { type: 'sine', attack: 0.002, release: 0.05, gain: 0.32 }),
+        renderTone(0.05, 1080, { type: 'sine', attack: 0.002, release: 0.04, gain: 0.18 }),
+      ),
+    ),
+    // Slightly deeper cue when moving between wizard steps.
+    uiStep: encodeWavDataUri(
+      mixSamples(
+        renderTone(0.08, 480, { type: 'sine', attack: 0.004, release: 0.06, gain: 0.3, slideTo: 640 }),
+        renderTone(0.07, 960, { type: 'sine', attack: 0.004, release: 0.05, gain: 0.16 }),
+      ),
+    ),
+    // Bright confirm for "start race".
+    uiConfirm: encodeWavDataUri(
+      mixSamples(
+        renderTone(0.1, 660, { type: 'square', attack: 0.003, release: 0.07, gain: 0.28 }),
+        renderTone(0.14, 990, { type: 'sine', attack: 0.008, release: 0.1, gain: 0.24, slideTo: 1320 }),
       ),
     ),
   }

@@ -4,6 +4,8 @@
 
 ### Racing audio and SFX playback (Phase A–C)
 
+- Added UI feedback SFX (`uiSelect` / `uiStep` / `uiConfirm`) for home catalog, racing launch choices, wizard next/back, and start-race confirm.
+
 - Fixed silent preview: missing session volume key was parsed as `0` via `Number(null)`, muting Howler globally; default is now 0.7. Added WAV format hints, louder engine levels, and an immediate countdown tick on race start.
 
 - Added Howler-based `raceAudio` director with synthesized local WAV banks (no cloud assets).

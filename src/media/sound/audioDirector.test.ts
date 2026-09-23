@@ -79,6 +79,15 @@ describe('raceAudio director', () => {
     raceAudio.dispose()
   })
 
+  it('plays UI select / step / confirm feedback', async () => {
+    const { raceAudio } = await import('./audioDirector')
+    raceAudio.playUi('select')
+    raceAudio.playUi('step')
+    raceAudio.playUi('confirm')
+    expect(howls.some(h => h.play.mock.calls.length > 0)).toBe(true)
+    raceAudio.dispose()
+  })
+
   it('plays countdown ticks once per second and go once', async () => {
     const { raceAudio } = await import('./audioDirector')
     raceAudio.beginRace('sport', 'player-1')
