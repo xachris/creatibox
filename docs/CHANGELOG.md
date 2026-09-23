@@ -123,3 +123,18 @@ The first playable world is now defined around:
 - simple waypoint-based opponent AI
 - separation between abstract authoring geometry and polished visual assets
 - curated local asset families for cars and environment
+
+
+### Preset composition direction
+
+Racing creation is further simplified into curated preset composition:
+
+- three track presets
+- three initial car appearance families
+- three initial colors
+- two motion presets
+- three sound families
+- simple opponent presets
+- large scrolling world with camera follow planned
+
+The platform defines valid options; students combine them.
