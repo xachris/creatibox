@@ -42,6 +42,57 @@ Entity → State → Action → Interaction → Transition
 
 ## 当前阶段
 
-**V0.1 设计冻结前阶段**
+**V0.1 MVP 开发中**
 
-当前任务是先固定世界模型与第一版 MVP 边界，再进入代码实现。
+第一轮可运行骨架已经进入仓库，并通过 GitHub Actions 自动验证。
+
+### 已实现
+
+- Vue 3 + TypeScript + Vite 工程
+- PixiJS 8 世界画布
+- 赛车 / 道路 / 墙 / 障碍 / 起点 / 终点
+- 对象选择与拖动
+- 属性面板：位置、大小、颜色、赛车速度与耐久
+- Edit / Run / Stop 分离
+- WASD / 方向键驾驶
+- 碰撞检测
+- 数据驱动的碰撞损伤规则
+- 抵达终点
+- Undo / Redo 基础能力
+- IndexedDB 自动保存
+- `.creatibox` 项目导出 / 导入
+- Vitest 基础规则测试
+- GitHub Actions：install → typecheck → test → build
+
+### 本地运行
+
+```bash
+npm install
+npm run dev
+```
+
+生产构建：
+
+```bash
+npm run build
+```
+
+自动测试：
+
+```bash
+npm test
+```
+
+### 当前验证状态
+
+GitHub Actions 已验证：
+
+- TypeScript 类型检查通过
+- 自动测试通过
+- 生产构建通过
+
+尚未完成浏览器人工交互验收，因此拖拽手感、不同屏幕尺寸、音频与真实课堂体验仍属于后续验证范围。
+
+### 当前开发原则
+
+先完成 Racing Creator 的完整课堂闭环，再扩展 Story、Architecture、Music 等 Creator。
