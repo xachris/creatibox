@@ -40,6 +40,7 @@ Entity → State → Action → Interaction → Transition
 - [开发执行模式与 CI 决策](docs/10_DEVELOPMENT_EXECUTION_MODES.md)
 - [对象创建三模式](docs/11_CREATION_MODES.md)
 - [赛车 MVP 规范](docs/12_RACING_MVP_SPEC.md)
+- [预设拼接系统](docs/13_PRESET_COMPOSITION_SYSTEM.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验
