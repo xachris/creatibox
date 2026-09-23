@@ -259,3 +259,63 @@ button:disabled { opacity: .45; cursor: default; }
   padding: 16px 26px 22px;
   border-top: 1px solid #edf0f4;
 }
+
+
+.creation-mode-card {
+  width: min(760px, 94vw);
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+}
+.creation-mode-intro {
+  margin: 0;
+  padding: 0 26px 18px;
+  color: #667085;
+  font-size: 13px;
+}
+.creation-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 0 26px 26px;
+}
+.creation-mode-option {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+  text-align: left;
+  border-radius: 14px;
+}
+.creation-mode-option:hover {
+  border-color: #8b5cf6;
+  background: #faf8ff;
+}
+.creation-mode-option strong {
+  margin-top: 14px;
+  font-size: 17px;
+}
+.creation-mode-option p {
+  margin: 10px 0 14px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.creation-mode-option small {
+  margin-top: auto;
+  color: #7c3aed;
+  font-weight: 700;
+}
+.mode-symbol {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #f3f0ff;
+  color: #6d28d9;
+  font-size: 20px;
+  font-weight: 800;
+}
