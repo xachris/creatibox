@@ -2,6 +2,15 @@
 
 ## 2026-09-24
 
+### Multi-View Phase 3 Oblique polish
+
+- Replaced sprite-center depth guesses with stable deepest-footprint sorting for rotated and differently sized entities; added conservative viewport culling that never removes logical entities from WorldRuntime.
+- Split Oblique trees into shadow, root-anchored trunk and crown display segments under one Entity ID. Crowns become translucent only while visually occluding the player; display height, alpha and shadows do not affect physics.
+- Preserved continuous projected heading and distance-driven gait, with automated coverage for eight distinct direction buckets, long-object footprint ordering, culling and a 1,000-entity CPU pressure set.
+- Local browser QA on a 1280×678 canvas measured 120.5 median fps, 9.30 ms p95 frame interval and 0.54 ms average update/render cost in the current 21-entity mixed race; 5–8 entities were visible after culling and no console warning/error occurred.
+- Validation: typecheck, production build and 244 tests pass. The 500-visible GPU pressure target and separate Chrome/Edge/Safari measurements remain unverified; Oblique editing remains disabled and Edit stays Top-Down.
+- No WorldRuntime, physics, rules, entity schema, dependency/version, user view-switching or deployment change.
+
 ### Multi-View Phase 2 Oblique MVP
 
 - Added a PixiJS fixed-heading Oblique renderer using the shared 2D world coordinates, with inverse ground projection, projected entity direction and a diamond-shaped world ground.

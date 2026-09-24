@@ -2,7 +2,7 @@
 
 ## 1. 文档目的与状态
 
-为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档、Phase 1 Top-Down renderer abstraction 与 Phase 2 Oblique MVP 已完成；Oblique polish、运行中视图切换与 First-Person 尚未实现。
+为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档、Phase 1 Top-Down renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 Oblique polish 已完成；运行中视图切换与 First-Person 尚未实现。
 
 设计基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`（2026-09-24）。当前四类竞速实体已经共用 WorldRuntime；本文不是再次实施 Unified Race，也不把视图能力标为已完成。[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)定义 Phase 0–6 的顺序与验收门禁。
 
@@ -164,7 +164,7 @@ Oblique MVP 仅运行。未来编辑使用屏幕命中选出 Entity ID、逆投�
 
 `Entity kind + appearance + movementStyle + relative heading + viewMode → visual asset`。Top-Down 和 Oblique 可以映射不同矢量/sprite，未来 First-Person 映射 Billboard/低模；缺资源显示可辨识占位，不删除实体。
 
-Phase 2 支持 Car / Horse / Human / Sheep、tree / road / obstacle / start / finish，并保留 wall。先用矢量/简单 sprite；Phase 3 再增加八向或更多方向、脚点标定、地面阴影与高质量资产。相对朝向由 Entity.rotation 与 camera heading 推导，不能修改 Entity.rotation 来“转图片”。Clean/Dynamic 与 vehicle/runner/hoofed 继续分开，动画从共享运动状态取值。
+Phase 2 支持 Car / Horse / Human / Sheep、tree / road / obstacle / start / finish，并保留 wall。Phase 3 已增加 footprint 脚点、独立地面阴影、树根 anchor、树冠遮挡透明和连续方向投影；相对朝向由 Entity.rotation 与 camera heading 推导，不修改 Entity.rotation 来“转图片”。Clean/Dynamic 与 vehicle/runner/hoofed 继续分开，动画从共享运动状态取值。高质量纹理 atlas 仍是后续资产工作。
 
 ---
 
@@ -216,7 +216,7 @@ spike 必须交付对比文档、最小可重复原型、设备/帧率/包体/�
 
 视图不改变声音路由。沿用 AudioDirector 的 countdown、GO、engine / hoofbeat / footstep、collision、result、mute/unlock 与结束清理；切换不重播倒计时或创建音轨。未来 First-Person 可另行设计 positional audio，但不在当前范围。
 
-桌面浏览器优先，**目标 60 fps，帧预算 16.7 ms**；以下是未来验收预算，不是当前性能测量或承诺：
+桌面浏览器优先，**目标 60 fps，帧预算 16.7 ms**。下表保留长期预算；Phase 3 已完成当前产品规模的首次测量，不能据此声称所有压力规模或设备已达标：
 
 | 场景 / 指标 | 初始预算与验证方法 |
 | --- | --- |
@@ -231,6 +231,8 @@ spike 必须交付对比文档、最小可重复原型、设备/帧率/包体/�
 
 Phase 1 记录实际测试机器、OS、浏览器版本和 Top-Down 基线；Phase 3 以相同设备比较，正常场景不得通过减少 Runtime 精度达标。压力场景可降低阴影、动画采样、DPR 等纯显示成本，不可减少逻辑实体或跳过碰撞。Chrome/Edge 与 Safari 的浏览器 QA 分别记录，未测设备不宣称通过。
 
+Phase 3 本地内置浏览器、1280×678 画布、21 Entity 曲线赛记录为：同时可见 5–8，帧间隔中位对应 120.5 fps，p95 9.30 ms，单帧模拟更新加显示重建平均 0.54 ms，无控制台 warning/error。1,000 Entity 的纯 CPU 裁剪与排序检查执行 50 次合计低于 500 ms。500 可见代理的 GPU 压力、Chrome/Edge 与 Safari 独立数据、draw-call/显存记录尚未验证；现阶段 renderer 仍逐帧重建可见 Graphics，后续需以对象池、静态缓存和 atlas 继续优化。
+
 ---
 
 ## 11. 禁止项、测试与本轮 Done Definition
@@ -239,7 +241,7 @@ Phase 1 记录实际测试机器、OS、浏览器版本和 Top-Down 基线；Pha
 
 后续必须验证同一 world/seed、相同逐 tick 输入与 dt 下，Top-Down / Oblique / 无 renderer 的 Runtime 结果一致；相机和显示随机数不能影响模拟。切换不重置 elapsed / waypoints / finishOrder，AuthoringState 和 undo 栈不受影响，旧项目默认 Top-Down。详细矩阵见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
-**Phase 0 Done Definition（已完成）：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，不开发代码、不部署，不把未来测试写成已通过。Phase 1 完成证据见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
+**Phase 0 Done Definition（已完成）：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，不开发代码、不部署，不把未来测试写成已通过。Phase 1–3 完成证据见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
 ## 12. 与既有规范的关系
 

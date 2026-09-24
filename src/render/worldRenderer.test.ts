@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Application } from 'pixi.js'
 import { CameraController } from './cameraController'
 import { createRunViewState, DEFAULT_EDIT_VIEW_STATE } from './viewState'
-import { ObliqueRenderer, TopDownRenderer } from './worldRenderer'
+import { ObliqueRenderer, TopDownRenderer, obliqueDirectionIndex, projectedFootY } from './worldRenderer'
 
 vi.mock('pixi.js', () => {
   class Container {
@@ -103,5 +103,46 @@ describe('oblique renderer projection', () => {
       entity('finish', 'finish', 200, 200),
     ])
     expect(ordered.map(item => item.id)).toEqual(['finish', 'far', 'near'])
+  })
+
+  it('uses the deepest footprint corner instead of sprite center for depth', () => {
+    const long = {
+      id: 'long', kind: 'obstacle' as const, name: 'long', position: { x: 50, y: 50 }, size: { x: 200, y: 20 }, rotation: Math.PI / 4,
+      color: 0, movable: false, state: 'Idle' as const, durability: 100, maxDurability: 100, speed: 0, maxSpeed: 0,
+    }
+    const small = { ...long, id: 'small', position: { x: 90, y: 90 }, size: { x: 10, y: 10 }, rotation: 0 }
+    expect(projectedFootY(long)).toBeGreaterThan(projectedFootY(small))
+
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    expect(renderer.orderEntities([long, small]).map(item => item.id)).toEqual(['small', 'long'])
+  })
+
+  it('maps a full turn to eight stable display directions', () => {
+    const directions = Array.from({ length: 8 }, (_, index) => obliqueDirectionIndex(index * Math.PI / 4))
+    expect(new Set(directions).size).toBe(8)
+  })
+
+  it('culls distant objects with a conservative visual margin', () => {
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    const entity = (id: string, x: number, y: number) => ({
+      id, kind: 'tree' as const, name: id, position: { x, y }, size: { x: 40, y: 80 }, rotation: 0,
+      color: 0, movable: false, state: 'Idle' as const, durability: 100, maxDurability: 100, speed: 0, maxSpeed: 0,
+    })
+    expect(renderer.visibleEntities([entity('visible', 100, 100), entity('culled', 10000, 10000)]).map(item => item.id)).toEqual(['visible'])
+  })
+
+  it('sorts and culls a 1000 entity pressure set within the display budget', () => {
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    const entities = Array.from({ length: 1000 }, (_, index) => ({
+      id: `tree-${index.toString().padStart(4, '0')}`, kind: 'tree' as const, name: 'Tree',
+      position: { x: (index % 40) * 80, y: Math.floor(index / 40) * 80 }, size: { x: 40, y: 80 }, rotation: 0,
+      color: 0, movable: false, state: 'Idle' as const, durability: 100, maxDurability: 100, speed: 0, maxSpeed: 0,
+    }))
+    const started = performance.now()
+    for (let index = 0; index < 50; index++) renderer.orderEntities(renderer.visibleEntities(entities))
+    expect(performance.now() - started).toBeLessThan(500)
   })
 })

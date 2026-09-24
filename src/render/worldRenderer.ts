@@ -12,6 +12,7 @@ export interface IWorldRenderer {
   unproject(screenPoint: Readonly<Vec2>): Vec2
   projectRotation(worldRotation: number): number
   orderEntities(entities: readonly Entity[]): Entity[]
+  visibleEntities(entities: readonly Entity[]): Entity[]
   strokeScale(worldWidth: number): number
   updateCamera(viewState: Readonly<ViewState>, target: Readonly<Pick<Entity, 'position' | 'rotation' | 'speed'>> | null, deltaSeconds?: number): void
   resetCamera(): void
@@ -46,6 +47,10 @@ abstract class PixiWorldRenderer implements IWorldRenderer {
       x: local.x * zoom + this.worldLayer.position.x,
       y: local.y * zoom + this.worldLayer.position.y,
     }
+  }
+
+  visibleEntities(entities: readonly Entity[]): Entity[] {
+    return [...entities]
   }
 
   unproject(screenPoint: Readonly<Vec2>): Vec2 {
@@ -99,6 +104,29 @@ export class TopDownRenderer extends PixiWorldRenderer {
 const OBLIQUE_SCALE_X = 0.72
 const OBLIQUE_SCALE_Y = 0.36
 
+/** Deepest projected footprint point. Visual height and animation never affect this value. */
+export function projectedFootY(entity: Readonly<Entity>): number {
+  const halfX = entity.size.x / 2
+  const halfY = entity.size.y / 2
+  const cos = Math.cos(entity.rotation)
+  const sin = Math.sin(entity.rotation)
+  let deepest = Number.NEGATIVE_INFINITY
+  for (const localX of [-halfX, halfX]) {
+    for (const localY of [-halfY, halfY]) {
+      const x = entity.position.x + localX * cos - localY * sin
+      const y = entity.position.y + localX * sin + localY * cos
+      deepest = Math.max(deepest, (x + y) * OBLIQUE_SCALE_Y)
+    }
+  }
+  return deepest
+}
+
+export function obliqueDirectionIndex(worldRotation: number): number {
+  const x = (Math.cos(worldRotation) - Math.sin(worldRotation)) * OBLIQUE_SCALE_X
+  const y = (Math.cos(worldRotation) + Math.sin(worldRotation)) * OBLIQUE_SCALE_Y
+  return (Math.round(Math.atan2(y, x) / (Math.PI / 4)) + 8) % 8
+}
+
 /** Fixed-heading 2.5D projection. Simulation remains entirely in 2D world coordinates. */
 export class ObliqueRenderer extends PixiWorldRenderer {
   readonly viewMode = 'oblique' as const
@@ -127,9 +155,19 @@ export class ObliqueRenderer extends PixiWorldRenderer {
       entity,
       index,
       layer: entity.kind === 'start' || entity.kind === 'finish' ? 0 : 1,
-      footY: this.toLayer(entity.position).y + Math.max(entity.size.x, entity.size.y) * OBLIQUE_SCALE_Y * 0.25,
+      footY: projectedFootY(entity),
     })).sort((a, b) => a.layer - b.layer || a.footY - b.footY || a.entity.id.localeCompare(b.entity.id) || a.index - b.index)
       .map(item => item.entity)
+  }
+
+  visibleEntities(entities: readonly Entity[]): Entity[] {
+    const viewport = { width: this.app.screen.width, height: this.app.screen.height }
+    return entities.filter(entity => {
+      const point = this.project(entity.position)
+      const margin = Math.max(120, entity.size.x * 1.5, entity.size.y * 1.5) * (this.worldLayer.scale.x || 1)
+      return point.x >= -margin && point.x <= viewport.width + margin
+        && point.y >= -margin && point.y <= viewport.height + margin
+    })
   }
 
   strokeScale(worldWidth: number): number {

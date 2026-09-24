@@ -6,7 +6,7 @@ import { drawLivingParticipant } from '../render/participant'
 import { WorldRuntime, raceStandings } from '../runtime/worldRuntime'
 import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 import { raceAudio } from '../media/sound/audioDirector'
-import { createWorldRenderer, type IWorldRenderer } from '../render/worldRenderer'
+import { createWorldRenderer, projectedFootY, type IWorldRenderer } from '../render/worldRenderer'
 import { createRunViewState, DEFAULT_EDIT_VIEW_STATE, type ViewMode, type ViewState } from '../render/viewState'
 
 const props = defineProps<{
@@ -42,6 +42,8 @@ const keys = new Set<string>()
 const muted = ref(raceAudio.isMuted())
 let previousPhase: string | null = null
 const gait = new Map<string, { x: number; y: number; distance: number }>()
+const frameTimes: number[] = []
+const renderCosts: number[] = []
 
 
 
@@ -88,20 +90,43 @@ function drawEntity(entity: Entity) {
   const previous = gait.get(entity.id)
   const distance = (previous?.distance ?? 0) + (previous ? Math.hypot(entity.position.x - previous.x, entity.position.y - previous.y) : 0)
   gait.set(entity.id, { x: entity.position.x, y: entity.position.y, distance })
+  const projected = activeRenderer.toLayer(entity.position)
   if (activeRenderer.viewMode === 'oblique' && !['start', 'finish'].includes(entity.kind)) {
-    graphic.roundRect(-entity.size.x * 0.38, entity.size.y * 0.18, entity.size.x * 0.76, Math.max(5, entity.size.y * 0.22), 999)
+    const shadow = new Graphics()
+    shadow.roundRect(-entity.size.x * 0.38, -Math.max(3, entity.size.y * 0.08), entity.size.x * 0.76, Math.max(6, entity.size.y * 0.2), 999)
       .fill({ color: 0x1f2937, alpha: 0.2 })
+    shadow.position.set(projected.x, projected.y)
+    worldLayer.addChild(shadow)
   }
   if (drawLivingParticipant(graphic, entity, distance)) {
     if (selected) graphic.circle(0, 0, 32).stroke({ width: 2, color: 0x2563eb })
   } else if (entity.kind === 'tree') {
-    graphic
-      .rect(-6, 4, 12, entity.size.y * 0.45)
-      .fill(0x7c4a2d)
-      .circle(0, -entity.size.y * 0.16, entity.size.x * 0.5)
-      .fill({ color: entity.color, alpha })
-      .circle(-entity.size.x * 0.22, -entity.size.y * 0.03, entity.size.x * 0.32)
-      .fill({ color: 0x16a34a, alpha })
+    if (activeRenderer.viewMode === 'oblique') {
+      graphic.rect(-6, -entity.size.y * 0.45, 12, entity.size.y * 0.45).fill(0x7c4a2d)
+      const crown = new Graphics()
+      const player = runtime?.player
+      const treeScreen = activeRenderer.project(entity.position)
+      const playerScreen = player ? activeRenderer.project(player.position) : null
+      const zoom = activeRenderer.worldLayer.scale.x || 1
+      const occludesPlayer = !!player && !!playerScreen
+        && projectedFootY(entity) > projectedFootY(player)
+        && Math.abs(treeScreen.x - playerScreen.x) < entity.size.x * 0.72 * zoom
+        && treeScreen.y - playerScreen.y > 0
+        && treeScreen.y - playerScreen.y < entity.size.y * 0.9 * zoom
+      const crownAlpha = occludesPlayer ? 0.42 : alpha
+      crown.circle(0, -entity.size.y * 0.55, entity.size.x * 0.5).fill({ color: entity.color, alpha: crownAlpha })
+        .circle(-entity.size.x * 0.22, -entity.size.y * 0.42, entity.size.x * 0.32).fill({ color: 0x16a34a, alpha: crownAlpha })
+      crown.position.set(projected.x, projected.y)
+      worldLayer.addChild(graphic, crown)
+    } else {
+      graphic
+        .rect(-6, 4, 12, entity.size.y * 0.45)
+        .fill(0x7c4a2d)
+        .circle(0, -entity.size.y * 0.16, entity.size.x * 0.5)
+        .fill({ color: entity.color, alpha })
+        .circle(-entity.size.x * 0.22, -entity.size.y * 0.03, entity.size.x * 0.32)
+        .fill({ color: 0x16a34a, alpha })
+    }
   } else {
     graphic
       .roundRect(-entity.size.x / 2, -entity.size.y / 2, entity.size.x, entity.size.y, entity.kind === 'car' ? 10 : 5)
@@ -159,9 +184,8 @@ function drawEntity(entity: Entity) {
     }
   }
 
-  const projected = activeRenderer.toLayer(entity.position)
   graphic.position.set(projected.x, projected.y)
-  graphic.rotation = activeRenderer.projectRotation(entity.rotation)
+  graphic.rotation = entity.kind === 'tree' && activeRenderer.viewMode === 'oblique' ? 0 : activeRenderer.projectRotation(entity.rotation)
   graphic.eventMode = 'static'
   graphic.cursor = props.mode === 'edit' ? 'move' : 'default'
 
@@ -179,7 +203,7 @@ function drawEntity(entity: Entity) {
     }
   })
 
-  worldLayer.addChild(graphic)
+  if (!(entity.kind === 'tree' && activeRenderer.viewMode === 'oblique')) worldLayer.addChild(graphic)
 }
 
 function render() {
@@ -199,7 +223,13 @@ function render() {
     worldLayer.addChild(ground)
 
     if (project.world.trackPath?.length) drawTrack(project.world.trackPath)
-    for (const entity of renderer!.orderEntities(activeEntities())) {
+    const allEntities = activeEntities()
+    const visibleEntities = renderer!.visibleEntities(allEntities)
+    if (host.value) {
+      host.value.dataset.visibleEntities = String(visibleEntities.length)
+      host.value.dataset.totalEntities = String(allEntities.length)
+    }
+    for (const entity of renderer!.orderEntities(visibleEntities)) {
       if (entity.kind !== 'road') drawEntity(entity)
     }
   })
@@ -262,6 +292,8 @@ function syncRaceAudio() {
 function initializeRuntime() {
   keys.clear()
   gait.clear()
+  frameTimes.length = 0
+  renderCosts.length = 0
   raceAudio.stopAll()
   dragging = null
   runtime = null
@@ -295,11 +327,23 @@ function initializeRuntime() {
 
 function runStep(deltaSeconds: number) {
   if (!runtime || document.hidden) return
+  const renderStarted = import.meta.env.DEV ? performance.now() : 0
   runtime.step(deltaSeconds, keys)
   followPlayer(runtime.player, deltaSeconds)
   syncHud()
   syncRaceAudio()
   render()
+  if (import.meta.env.DEV && host.value) {
+    frameTimes.push(deltaSeconds * 1000)
+    renderCosts.push(performance.now() - renderStarted)
+    if (frameTimes.length > 120) frameTimes.shift()
+    if (renderCosts.length > 120) renderCosts.shift()
+    const sorted = [...frameTimes].sort((a, b) => a - b)
+    const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))]
+    host.value.dataset.medianFps = (1000 / sorted[Math.floor(sorted.length / 2)]).toFixed(1)
+    host.value.dataset.frameP95Ms = p95.toFixed(2)
+    host.value.dataset.renderAverageMs = (renderCosts.reduce((sum, value) => sum + value, 0) / renderCosts.length).toFixed(2)
+  }
 }
 
 onMounted(async () => {

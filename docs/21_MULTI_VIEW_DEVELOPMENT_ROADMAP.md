@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-Phase 0 文档、Phase 1 Renderer abstraction 与 Phase 2 Oblique MVP 已完成。Phase 3–6 尚未启动；Oblique 当前只通过本地开发配置用于运行模式，没有产品化切换入口或斜视编辑，First-Person 未实现。
+Phase 0 文档、Phase 1 Renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 Oblique polish 已完成。Phase 4–6 尚未启动；Oblique 当前只通过本地开发配置用于运行模式，没有产品化切换入口或斜视编辑，First-Person 未实现。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -17,7 +17,7 @@ Phase 0 文档、Phase 1 Renderer abstraction 与 Phase 2 Oblique MVP 已完成�
 | 0 文档 / 架构冻结 | 已完成 | 读取现有规范与 main | 两份规范、索引、变更记录、文档提交 | 2026-09-24 已完成 |
 | 1 Renderer abstraction | 2–3 开发日 | Phase 0 | Top-Down 经适配层运行且无行为变化 | 2026-09-24 已完成 |
 | 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 2026-09-24 已完成 |
-| 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 未启动 |
+| 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 2026-09-24 已完成 |
 | 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 未启动 |
 | 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 未启动，不承诺产品化 |
 | 6 First-Person MVP | Go 后再估算，暂留 5–10 开发日 | Phase 5 Go + 独立排期确认 | 复用 2D Runtime 的第一人称运行视图 | 条件阶段 |
@@ -113,6 +113,16 @@ Phase 0 文档、Phase 1 Renderer abstraction 与 Phase 2 Oblique MVP 已完成�
 - 投影/逆投影往返在支持平面内误差 ≤1e-6 world unit；交互误差以屏幕实测为准，已支持编辑操作指针漂移 ≤2 CSS px。
 - 完成 20 第 10 节的正常场景 60 fps 预算与压力报告；真实设备信息、p95、排序成本、culling/批处理策略入档。
 - 斜视编辑若未开放，明确写“仅映射验证，编辑未交付”。
+
+### 完成记录（2026-09-24）
+
+- 深度键改为旋转 footprint 最深角的 projected foot Y，不再用 sprite center 或按尺寸猜测偏移；长障碍、不同尺寸物件和动态实体继续以稳定 Entity ID 排序。
+- 树在显示层拆成地面阴影、树干和树冠，仍对应同一个 Entity。树冠位于玩家前方且覆盖玩家脚点区域时降至 42% alpha；树根作为视觉锚点，树不随业务 rotation 倾倒。显示高度、阴影和透明度均未进入 Entity 或碰撞。
+- Car 与三类生物继续使用投影后的连续朝向；自动测试证明完整一圈能稳定映射为八个不同方向。gait 仍由共享位移累计驱动，静止时冻结。
+- Oblique renderer 按投影后的屏幕位置和包含树冠/阴影的安全边距裁剪。当前浏览器曲线赛 21 个对象中同时绘制 5–8 个；裁剪不删除逻辑实体，也不影响 Runtime step。
+- 开发环境加入只读性能指标。1280×678 本地内置浏览器实测中位 120.5 fps、p95 帧间隔 9.30 ms、平均单帧模拟更新加显示重建 0.54 ms；正常产品场景达到 60 fps 预算，控制台无 warning/error。该结果只代表当前设备和当前 21 Entity 场景，不外推到其他浏览器或设备。
+- 1,000 Entity 压力自动检查连续执行 50 次裁剪与稳定排序，合计须低于 500 ms；本轮通过。500 可见代理的真实 GPU/draw-call 压力尚未在浏览器验证，高质量纹理 atlas、静态 Graphics 缓存与显示对象池仍是后续性能工作，不把 CPU 检查冒充完整渲染结果。
+- 244 项测试、typecheck 与 production build 通过。投影逆变换仍保持 1e-10 精度级测试；斜视编辑未交付，screen→world 只保留架构能力，编辑继续强制 Top-Down。未部署。
 
 ---
 
@@ -213,4 +223,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-下一轮若继续开发，从 Phase 3 Oblique polish 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)完善遮挡、anchor、方向与性能；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。
+下一轮若继续开发，从 Phase 4 View switching 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)实现不重建 Runtime 的 Top-Down ↔ Oblique 切换和可选视图偏好；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。
