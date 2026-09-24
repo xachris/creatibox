@@ -1,0 +1,353 @@
+{
+  "meta": {
+    "image": "horse-brown-v1.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1600,
+      "h": 1280
+    },
+    "scale": 1,
+    "cellSize": {
+      "w": 320,
+      "h": 320
+    },
+    "directions": [
+      "frontRight",
+      "right",
+      "backRight",
+      "back"
+    ],
+    "animations": {
+      "idle": {
+        "frames": 1
+      },
+      "run": {
+        "frames": 4,
+        "loop": true
+      }
+    },
+    "mirrorForLeftFacingDirections": true
+  },
+  "frames": {
+    "frontRight.idle": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "frontRight.run.0": {
+      "frame": {
+        "x": 320,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "frontRight.run.1": {
+      "frame": {
+        "x": 640,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "frontRight.run.2": {
+      "frame": {
+        "x": 960,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "frontRight.run.3": {
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "right.idle": {
+      "frame": {
+        "x": 0,
+        "y": 320,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "right.run.0": {
+      "frame": {
+        "x": 320,
+        "y": 320,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "right.run.1": {
+      "frame": {
+        "x": 640,
+        "y": 320,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "right.run.2": {
+      "frame": {
+        "x": 960,
+        "y": 320,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "right.run.3": {
+      "frame": {
+        "x": 1280,
+        "y": 320,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "backRight.idle": {
+      "frame": {
+        "x": 0,
+        "y": 640,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "backRight.run.0": {
+      "frame": {
+        "x": 320,
+        "y": 640,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "backRight.run.1": {
+      "frame": {
+        "x": 640,
+        "y": 640,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "backRight.run.2": {
+      "frame": {
+        "x": 960,
+        "y": 640,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "backRight.run.3": {
+      "frame": {
+        "x": 1280,
+        "y": 640,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "back.idle": {
+      "frame": {
+        "x": 0,
+        "y": 960,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "back.run.0": {
+      "frame": {
+        "x": 320,
+        "y": 960,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "back.run.1": {
+      "frame": {
+        "x": 640,
+        "y": 960,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "back.run.2": {
+      "frame": {
+        "x": 960,
+        "y": 960,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    },
+    "back.run.3": {
+      "frame": {
+        "x": 1280,
+        "y": 960,
+        "w": 320,
+        "h": 320
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.94
+      },
+      "sourceSize": {
+        "w": 320,
+        "h": 320
+      }
+    }
+  }
+}
