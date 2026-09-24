@@ -2,6 +2,14 @@
 
 ## 2026-09-25
 
+### Multi-View Phase 6 First-Person MVP
+
+- Added a lazily loaded Three.js First-Person run view beside Top-Down and Oblique. All three read the same WorldRuntime; switching preserves elapsed time, participants, waypoints, finish order, input, audio and HUD.
+- Added low-poly ground, segmented roads and display proxies for race participants and world objects. Entity IDs and 2D coordinates remain authoritative; no 3D physics, vertical movement or duplicate game rules were added.
+- Added optional First-Person run preference compatibility, WebGL initialization fallback to Top-Down, explicit geometry/material/renderer cleanup and 50-switch resource coverage.
+- Browser QA kept Runtime generation 1 while elapsed advanced 18.5 → 32.3 → 33.5 seconds across First-Person → Oblique → Top-Down. First-Person rendered 17 draw calls / 354 triangles; its canvas was removed after exit and console warning/error count was zero.
+- First-Person remains run-only with simple untextured proxies. No deployment.
+
 ### First-Person architecture spike
 
 - Added a restricted DDA grid-raycast experiment and documented why it is No-Go as the general renderer for freely positioned, rotated CreatiBox worlds.

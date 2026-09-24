@@ -32,7 +32,7 @@ const showRaceComposer = ref(false)
 const screen = ref<'home' | 'launch' | 'editor'>('home')
 const hasRecentProject = ref(false)
 const saveError = ref('')
-const runViewMode = ref<'top-down' | 'oblique'>('top-down')
+const runViewMode = ref<'top-down' | 'oblique' | 'first-person'>('top-down')
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -197,7 +197,7 @@ async function openFile(event: Event) {
   try {
     snapshot()
     project.value = await importProject(file)
-    runViewMode.value = project.value.view?.run.viewMode === 'oblique' ? 'oblique' : 'top-down'
+    runViewMode.value = project.value.view?.run.viewMode ?? 'top-down'
     selectedId.value = null
     screen.value = 'editor'
     mode.value = 'edit'
@@ -212,7 +212,7 @@ onMounted(async () => {
   const saved = await loadAutosave().catch(() => { saveError.value = '无法读取本机存档，可导入项目继续。'; return undefined })
   if (saved && screen.value === 'home') {
     project.value = saved
-    runViewMode.value = saved.view?.run.viewMode === 'oblique' ? 'oblique' : 'top-down'
+    runViewMode.value = saved.view?.run.viewMode ?? 'top-down'
     hasRecentProject.value = true
   }
 })
@@ -233,7 +233,7 @@ function setColor(value: string) {
   selected.value.color = Number.parseInt(value.replace('#', ''), 16)
 }
 
-function setRunViewMode(viewMode: 'top-down' | 'oblique') {
+function setRunViewMode(viewMode: 'top-down' | 'oblique' | 'first-person') {
   if (mode.value !== 'run' || runViewMode.value === viewMode) return
   runViewMode.value = viewMode
   const preferences = createProjectViewPreferences(viewMode)
@@ -349,6 +349,7 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique') {
           <div class="view-switch" role="group" aria-label="运行视角">
             <button type="button" :aria-pressed="runViewMode === 'top-down'" @click="setRunViewMode('top-down')">俯视</button>
             <button type="button" :aria-pressed="runViewMode === 'oblique'" @click="setRunViewMode('oblique')">斜视</button>
+            <button type="button" :aria-pressed="runViewMode === 'first-person'" @click="setRunViewMode('first-person')">第一人称</button>
           </div>
         </div>
         <WorldCanvas
@@ -360,6 +361,7 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique') {
           @move="moveEntity"
           @edit="mode = 'edit'"
           @home="goHome"
+          @view-fallback="setRunViewMode($event)"
         />
       </section>
 

@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-Phase 0–5 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换并保存偏好；编辑仍固定 Top-Down。First-Person 架构 spike 已给出 Three.js Conditional Go，但产品化 First-Person 未实现，Phase 6 不自动开始。
+Phase 0–6 已完成。运行模式可在 Top-Down、Oblique 与 First-Person 间连续切换并保存偏好；编辑仍固定 Top-Down。First-Person MVP 使用异步 Three.js 显示层并复用同一 WorldRuntime。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -20,7 +20,7 @@ Phase 0–5 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换�
 | 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 2026-09-24 已完成 |
 | 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 2026-09-24 已完成 |
 | 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 2026-09-25 已完成；Three.js Conditional Go |
-| 6 First-Person MVP | Go 后再估算，暂留 5–10 开发日 | Phase 5 Go + 独立排期确认 | 复用 2D Runtime 的第一人称运行视图 | 条件阶段 |
+| 6 First-Person MVP | Go 后再估算，暂留 5–10 开发日 | Phase 5 Go + 独立排期确认 | 复用 2D Runtime 的第一人称运行视图 | 2026-09-25 已完成 MVP |
 
 估计按一位熟悉现有代码的开发者计算，包括本阶段检查；不包含高质量资产采购/制作、课堂验证和等待评审时间。Phase 1–4 约 10–16 开发日，仅供规划。没有承诺上线日期；任一代码阶段的上线/部署另行安排，不继承旧 Unified Race 文档的自动部署要求。
 
@@ -196,6 +196,15 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 验收沿用双视图一致性矩阵并扩展为三视图，验证碰撞可见反馈、HUD 可读性、输入退出、切回 Top-Down/Oblique 的连续性、资产缺失与显卡能力失败回退。未满足时保留 Phase 4 成果，不替换默认编辑器。
 
+### 完成记录（2026-09-25）
+
+- 新增 production 可用但按需加载的 `FirstPersonRenderer`。Three.js 只读取 Runtime project / player；键盘、ticker、声音、HUD、碰撞、AI、waypoint、finish 和 ranking 仍由现有运行宿主管理。
+- 运行视角增加“第一人称”，可与俯视、斜视连续切换并保存可选偏好。切换不创建 Runtime；WebGL 不可用或初始化失败时回退 Top-Down。
+- 地面、分段道路、Car / Horse / Human / Sheep、tree / wall / obstacle 使用简单低模映射；Entity ID 与 2D position / rotation 保持唯一权威。
+- 自动验证覆盖 50 次 First-Person 往返、canvas dispose、初始化失败回退、偏好兼容和 Runtime generation 不变。
+- 浏览器实测同一比赛由 18.5 秒 First-Person 连续运行到 32.3 秒 Oblique、33.5 秒 Top-Down，Runtime generation 始终为 1；First-Person 17 draw calls / 354 triangles，离开后 3D canvas 为 0，控制台无 warning/error。
+- 当前资产仍是无纹理低模代理；没有垂直物理、跳跃、复杂地形、VR、第一人称编辑或 positional audio。
+
 ---
 
 ## 10. 测试矩阵与证据规范
@@ -241,4 +250,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-Phase 5 已完成 Conditional Go，但 Phase 6 不自动开始。下一轮只有在继续指令明确接受条件阶段后，才依据 [22 Spike 报告](22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)把 Three renderer 接入稳定运行宿主；任何门禁失败都回到 Top-Down / Oblique，不修改默认编辑视图。
+Phase 6 MVP 已完成。下一轮应做真实资产与低端设备性能阶段：四类 participant 的 Billboard / 低模资产质量、道路接缝、碰撞反馈、首次加载体验和 Chrome / Edge / Safari 性能；继续保持 Top-Down 为默认编辑视图，不扩展 3D 物理。

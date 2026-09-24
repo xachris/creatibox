@@ -95,4 +95,4 @@ typecheck 与 production build 通过。Vite 对 524.10 kB 实验 chunk 给出�
 5. 加入 renderer 初始化失败回退、50 次切换资源检查、四类玩家方向校验、碰撞可见反馈和正常/压力场景性能数据。
 6. 131.62 kB gzip 依赖成本需要产品评审；若首开、GPU 或低端课堂设备数据不达标，Phase 6 No-Go，保留 Top-Down / Oblique。
 
-Phase 5 到此结束。Phase 6 仍是条件阶段，不部署、不修改 production 默认视图。
+Phase 5 到此结束。Phase 6 已于 2026-09-25 按上述条件完成运行视图 MVP：Three renderer 接入稳定运行宿主，支持三视图连续切换、偏好保存、失败回退和显式资源清理。默认编辑视图仍为 Top-Down；低模资产、包体与设备性能边界继续有效。

@@ -6,6 +6,18 @@ import WorldCanvas from './WorldCanvas.vue'
 import { createRaceProject } from '../model/raceGenerator'
 
 const pixi = vi.hoisted(() => ({ tick: (_: { deltaMS: number }) => {}, camera: { x: 0, y: 0 } }))
+const three = vi.hoisted(() => ({ mounts: 0, disposals: 0, renders: 0, fail: false }))
+vi.mock('../render/firstPersonRenderer', () => ({
+  FirstPersonRenderer: class {
+    readonly canvas = document.createElement('canvas')
+    constructor(host: HTMLElement) {
+      if (three.fail) throw new Error('WebGL unavailable')
+      this.canvas.dataset.renderer = 'first-person'; host.appendChild(this.canvas); three.mounts += 1
+    }
+    render() { three.renders += 1; return { drawCalls: 12, triangles: 24 } }
+    dispose() { this.canvas.remove(); three.disposals += 1 }
+  },
+}))
 vi.mock('howler', () => {
   class Howl {
     play() { return 1 }
@@ -90,6 +102,53 @@ describe('WorldCanvas entry and restart', () => {
     expect(canvas.attributes('data-runtime-generation')).toBe('1')
     expect(w.get('[aria-label="比赛进度"]').text()).not.toBe(progress)
     expect(w.findAll('canvas')).toHaveLength(1)
+  })
+
+  it('switches through first-person without rebuilding Runtime and disposes its canvas', async () => {
+    const w = mount(WorldCanvas, { props: { project: project(), mode: 'run', selectedId: null, viewMode: 'top-down' }, attachTo: document.body })
+    wrappers.push(w)
+    await flushPromises()
+    tick(5)
+    const canvas = w.get('[aria-label="赛车画布"]')
+    const progress = w.get('[aria-label="比赛进度"]').text()
+
+    await w.setProps({ viewMode: 'first-person' })
+    await flushPromises()
+    tick(1)
+    expect(canvas.attributes('data-runtime-generation')).toBe('1')
+    expect(canvas.attributes('data-draw-calls')).toBe('12')
+    expect(three.renders).toBeGreaterThan(0)
+    expect(w.findAll('canvas')).toHaveLength(2)
+
+    await w.setProps({ viewMode: 'oblique' })
+    await flushPromises()
+    expect(canvas.attributes('data-runtime-generation')).toBe('1')
+    expect(three.disposals).toBeGreaterThan(0)
+    expect(w.findAll('canvas')).toHaveLength(1)
+    expect(w.get('[aria-label="比赛进度"]').text()).not.toBe(progress)
+  })
+
+  it('cleans up 50 first-person switches and falls back when initialization fails', async () => {
+    const w = mount(WorldCanvas, { props: { project: project(), mode: 'run', selectedId: null, viewMode: 'top-down' }, attachTo: document.body })
+    wrappers.push(w)
+    await flushPromises()
+    const startMounts = three.mounts
+    const startDisposals = three.disposals
+    for (let index = 0; index < 50; index++) {
+      await w.setProps({ viewMode: index % 2 === 0 ? 'first-person' : 'top-down' })
+      await flushPromises()
+    }
+    expect(three.mounts - startMounts).toBe(25)
+    expect(three.disposals - startDisposals).toBe(25)
+    expect(w.findAll('[data-renderer="first-person"]')).toHaveLength(0)
+    expect(w.get('[aria-label="赛车画布"]').attributes('data-runtime-generation')).toBe('1')
+
+    three.fail = true
+    await w.setProps({ viewMode: 'first-person' })
+    await flushPromises()
+    expect(w.emitted('viewFallback')?.at(-1)).toEqual(['top-down'])
+    expect(w.get('[aria-label="赛车画布"]').attributes('data-view-fallback-reason')).toBe('WebGL unavailable')
+    three.fail = false
   })
 
   it('initializes on first run mount, counts down, follows player and restarts', async () => {

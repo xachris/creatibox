@@ -49,7 +49,7 @@ function finiteOr(value: unknown, fallback: number) {
 function normalizeSavedView(value: unknown, scope: 'edit' | 'run'): ProjectViewState {
   const raw = value && typeof value === 'object' ? value as Partial<ProjectViewState> : {}
   const defaults = scope === 'edit' ? DEFAULT_EDIT_PROJECT_VIEW : DEFAULT_RUN_PROJECT_VIEW
-  const supportedMode = scope === 'run' && raw.viewMode === 'oblique' ? 'oblique' : 'top-down'
+  const supportedMode = scope === 'run' && (raw.viewMode === 'oblique' || raw.viewMode === 'first-person') ? raw.viewMode : 'top-down'
   const state: ProjectViewState = {
     viewMode: supportedMode,
     cameraTarget: typeof raw.cameraTarget === 'string' || raw.cameraTarget === null ? raw.cameraTarget : defaults.cameraTarget,
@@ -71,7 +71,7 @@ export function normalizeProjectView(value: unknown): ProjectViewPreferences | u
   return { version: 1, edit: normalizeSavedView(raw.edit, 'edit'), run: normalizeSavedView(raw.run, 'run') }
 }
 
-export function createProjectViewPreferences(runMode: 'top-down' | 'oblique'): ProjectViewPreferences {
+export function createProjectViewPreferences(runMode: 'top-down' | 'oblique' | 'first-person'): ProjectViewPreferences {
   return {
     version: 1,
     edit: { ...DEFAULT_EDIT_PROJECT_VIEW },

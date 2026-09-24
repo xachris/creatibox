@@ -13,7 +13,7 @@ const props = defineProps<{
   project: CreatiBoxProject
   selectedId: string | null
   mode: 'edit' | 'run'
-  viewMode?: Extract<ViewMode, 'top-down' | 'oblique'>
+  viewMode?: ViewMode
 }>()
 
 const emit = defineEmits<{
@@ -21,11 +21,14 @@ const emit = defineEmits<{
   move: [id: string, x: number, y: number]
   edit: []
   home: []
+  viewFallback: [mode: Extract<ViewMode, 'top-down' | 'oblique'>]
 }>()
 
 const host = ref<HTMLDivElement | null>(null)
 let app: Application | null = null
 let renderer: IWorldRenderer | null = null
+let firstPersonRenderer: import('../render/firstPersonRenderer').FirstPersonRenderer | null = null
+let rendererRequest = 0
 let viewState: ViewState = { ...DEFAULT_EDIT_VIEW_STATE }
 let runtimeProject: CreatiBoxProject | null = null
 let runtime: WorldRuntime | null = null
@@ -210,6 +213,16 @@ function drawEntity(entity: Entity) {
 function render() {
   if (!app || !renderer) return
   const project = activeProject()
+  if (firstPersonRenderer && runtime && props.mode === 'run' && props.viewMode === 'first-person') {
+    const stats = firstPersonRenderer.render(project, runtime.player)
+    if (host.value) {
+      host.value.dataset.drawCalls = String(stats.drawCalls)
+      host.value.dataset.triangles = String(stats.triangles)
+      host.value.dataset.visibleEntities = String(project.world.entities.length)
+      host.value.dataset.totalEntities = String(project.world.entities.length)
+    }
+    return
+  }
   const bounds = project.world.worldBounds ?? { width: app.screen.width, height: app.screen.height }
 
   renderer.render(worldLayer => {
@@ -237,7 +250,54 @@ function render() {
 }
 
 function followPlayer(player: Entity, deltaSeconds = 0) {
+  if (props.viewMode === 'first-person') return
   renderer?.updateCamera(viewState, player, deltaSeconds)
+}
+
+function setPixiVisible(visible: boolean) {
+  if (app?.canvas) app.canvas.style.display = visible ? 'block' : 'none'
+}
+
+function disposeFirstPersonRenderer() {
+  rendererRequest += 1
+  firstPersonRenderer?.dispose()
+  firstPersonRenderer = null
+  setPixiVisible(true)
+}
+
+async function activateView(viewMode: ViewMode) {
+  if (!app || !renderer || props.mode !== 'run') return
+  const request = ++rendererRequest
+  if (viewMode !== 'first-person') {
+    firstPersonRenderer?.dispose()
+    firstPersonRenderer = null
+    setPixiVisible(true)
+    if (renderer.viewMode !== viewMode) {
+      renderer.dispose()
+      renderer = createWorldRenderer(app, viewMode)
+    }
+    viewState = { ...viewState, viewMode }
+    if (runtime) followPlayer(runtime.player)
+    render()
+    return
+  }
+
+  try {
+    const { FirstPersonRenderer } = await import('../render/firstPersonRenderer')
+    if (request !== rendererRequest || !host.value || !runtimeProject || props.viewMode !== 'first-person') return
+    firstPersonRenderer?.dispose()
+    firstPersonRenderer = new FirstPersonRenderer(host.value, runtimeProject)
+    setPixiVisible(false)
+    viewState = { ...viewState, viewMode }
+    render()
+  } catch (cause) {
+    if (request !== rendererRequest) return
+    firstPersonRenderer?.dispose()
+    firstPersonRenderer = null
+    setPixiVisible(true)
+    if (host.value) host.value.dataset.viewFallbackReason = cause instanceof Error ? cause.message : 'First-Person 初始化失败'
+    emit('viewFallback', 'top-down')
+  }
 }
 
 function syncHud() {
@@ -361,7 +421,7 @@ onMounted(async () => {
     if (disposed || !host.value) { instance.destroy(true, { children: true }); return }
     host.value.appendChild(app.canvas)
 
-    renderer = createWorldRenderer(app, props.mode === 'run' ? (props.viewMode ?? 'top-down') : 'top-down')
+    renderer = createWorldRenderer(app, props.mode === 'run' && props.viewMode === 'oblique' ? 'oblique' : 'top-down')
     app.stage.eventMode = 'static'
     app.stage.hitArea = app.screen
 
@@ -387,7 +447,10 @@ onMounted(async () => {
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', clearKeys)
     document.addEventListener('visibilitychange', clearKeys)
-    if (props.mode === 'run') initializeRuntime()
+    if (props.mode === 'run') {
+      initializeRuntime()
+      if (props.viewMode === 'first-person') void activateView('first-person')
+    }
     else render()
   } catch {
     if (!disposed) { phase.value = 'error'; error.value = '画布加载失败，请刷新页面后重试。' }
@@ -412,9 +475,13 @@ function onKeyUp(event: KeyboardEvent) {
 
 watch(() => props.mode, (mode) => {
   if (!app) return
+  disposeFirstPersonRenderer()
   renderer?.dispose()
-  renderer = createWorldRenderer(app, mode === 'run' ? (props.viewMode ?? 'top-down') : 'top-down')
-  if (mode === 'run') initializeRuntime()
+  renderer = createWorldRenderer(app, mode === 'run' && props.viewMode === 'oblique' ? 'oblique' : 'top-down')
+  if (mode === 'run') {
+    initializeRuntime()
+    if (props.viewMode === 'first-person') void activateView('first-person')
+  }
   else {
     raceAudio.stopAll()
     previousPhase = null
@@ -429,12 +496,8 @@ watch(() => props.mode, (mode) => {
 })
 
 watch(() => props.viewMode, (viewMode) => {
-  if (!app || props.mode !== 'run' || !viewMode || renderer?.viewMode === viewMode) return
-  renderer?.dispose()
-  renderer = createWorldRenderer(app, viewMode)
-  viewState = { ...viewState, viewMode }
-  if (runtime) followPlayer(runtime.player)
-  render()
+  if (!app || props.mode !== 'run' || !viewMode) return
+  void activateView(viewMode)
 })
 
 watch(() => props.project, () => {
@@ -451,6 +514,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', clearKeys)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
+  disposeFirstPersonRenderer()
   renderer?.dispose()
   if (renderer) app?.destroy(true, { children: true })
   app = null

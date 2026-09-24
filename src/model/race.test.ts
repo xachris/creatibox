@@ -69,9 +69,16 @@ it('sanitizes unsupported or damaged display preferences without changing the wo
   }
   const normalized = normalizeProject(source)
   expect(normalized.view?.edit).toMatchObject({ viewMode: 'top-down', zoom: 1, rotation: 0, followMode: 'none' })
-  expect(normalized.view?.run).toMatchObject({ viewMode: 'top-down', zoom: 2, followMode: 'participant' })
+  expect(normalized.view?.run).toMatchObject({ viewMode: 'first-person', zoom: 2, followMode: 'participant' })
   expect(JSON.stringify(normalized.world)).toBe(world)
 
   source.view = { ...source.view, version: 2 as 1 }
   expect(normalizeProject(source).view?.run.viewMode).toBe('top-down')
+})
+
+it('round trips an optional first-person run preference', () => {
+  const source = createStarterProject()
+  source.view = createProjectViewPreferences('first-person')
+  expect(normalizeProject(source).view?.run.viewMode).toBe('first-person')
+  expect(normalizeProject(source).view?.edit.viewMode).toBe('top-down')
 })
