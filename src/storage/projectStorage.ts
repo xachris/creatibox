@@ -1,4 +1,4 @@
-import { cloneData } from '../model/clone'
+import { normalizeProject } from '../model/race'
 import { openDB } from 'idb'
 import type { CreatiBoxProject } from '../model/types'
 
@@ -18,16 +18,17 @@ async function db() {
 
 export async function saveAutosave(project: CreatiBoxProject): Promise<void> {
   const database = await db()
-  await database.put(STORE, cloneData(project), AUTOSAVE_KEY)
+  await database.put(STORE, normalizeProject(project), AUTOSAVE_KEY)
 }
 
 export async function loadAutosave(): Promise<CreatiBoxProject | undefined> {
   const database = await db()
-  return database.get(STORE, AUTOSAVE_KEY)
+  const saved = await database.get(STORE, AUTOSAVE_KEY)
+  return saved ? normalizeProject(saved) : undefined
 }
 
 export function exportProject(project: CreatiBoxProject): void {
-  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(normalizeProject(project), null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
@@ -41,5 +42,5 @@ export async function importProject(file: File): Promise<CreatiBoxProject> {
   if (raw.formatVersion !== '0.1' || !raw.world || !Array.isArray(raw.world.entities)) {
     throw new Error('Unsupported or invalid CreatiBox project.')
   }
-  return raw
+  return normalizeProject(raw)
 }

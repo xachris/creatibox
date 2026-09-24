@@ -1,6 +1,8 @@
-import { createCar, createEntity, DEFAULT_CAR_CONTROLS } from './factory'
+import { RACE_DEFAULTS } from './race'
+import { createParticipant, createEntity, DEFAULT_CAR_CONTROLS } from './factory'
 import type {
   CarShape,
+  RaceSpecies,
   CreatiBoxProject,
   MotionPreset,
   OpponentProfile,
@@ -11,6 +13,8 @@ import type {
 } from './types'
 
 export interface RacePresetOptions {
+  playerKind?: RaceSpecies
+  opponentKinds?: RaceSpecies[]
   driver?: 'driver-a' | 'driver-b' | 'driver-c'
   track: TrackPreset
   length: TrackLength
@@ -89,26 +93,30 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
   const heading = angleBetween(start, next)
   const entities = []
 
-  const player = createCar({
-    name: 'Player Car',
+  const playerKind = options.playerKind ?? 'car'
+  const player = createParticipant(playerKind, {
+    name: `Player ${playerKind[0].toUpperCase() + playerKind.slice(1)}`,
     color: COLORS[options.color],
     carShape: options.carShape,
     controls: { ...DEFAULT_CAR_CONTROLS },
     controlRole: 'player',
     motionPreset: options.motion,
     soundPreset: options.sound,
-    maxSpeed: 260,
+    maxSpeed: RACE_DEFAULTS[playerKind].maxSpeed,
   }, start.x, start.y)
   player.rotation = heading
   player.driverPreset = options.driver ?? 'driver-a'
   entities.push(player)
 
+  let back = 0
+  let previousLength = player.size.x
   for (let i = 0; i < options.opponents; i++) {
+    const kind = options.opponentKinds?.[i] ?? 'car'
     const profileSpeed = options.difficulty === 'easy' ? 190 : options.difficulty === 'fast' ? 280 : 235
     // Stagger far enough (cars are ~72×42) so the grid never starts overlapping.
-    const back = 95 + i * 88
+    back += previousLength / 2 + (kind === 'car' ? 72 : kind === 'horse' ? 66 : kind === 'human' ? 32 : 44) / 2 + 24
     const side = (i % 2 === 0 ? 1 : -1) * (52 + Math.floor(i / 2) * 8)
-    const opponent = createCar({
+    const opponent = createParticipant(kind, {
       name: `CPU ${i + 1}`,
       color: OPPONENT_COLORS[i % OPPONENT_COLORS.length],
       carShape: i % 2 === 0 ? 'sport' : 'classic',
@@ -116,9 +124,10 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
       opponentProfile: options.difficulty,
       motionPreset: options.motion,
       soundPreset: options.sound,
-      maxSpeed: profileSpeed + i * 8,
+      maxSpeed: options.opponentKinds ? RACE_DEFAULTS[kind].maxSpeed * (options.difficulty === 'easy' ? 0.8 : options.difficulty === 'fast' ? 1.08 : 0.95) : profileSpeed + i * 8,
     }, start.x - Math.cos(heading) * back + Math.sin(heading) * side,
     start.y - Math.sin(heading) * back - Math.cos(heading) * side)
+    previousLength = opponent.size.x
     opponent.rotation = heading
     entities.push(opponent)
   }
@@ -160,10 +169,10 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
       name: options.track === 'straight' ? 'Straight Race' : options.track === 'curve' ? 'Curve Race' : 'Circuit Race',
       entities,
       rules: [
-        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'obstacle', effect: 'damage', value: 10 },
-        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'wall', effect: 'damage', value: 15 },
-        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'collide', targetKind: 'car', effect: 'damage', value: 3 },
-        { id: crypto.randomUUID(), sourceKind: 'car', interaction: 'reach', targetKind: 'finish', effect: 'finish' },
+        { id: crypto.randomUUID(), sourceCapability: 'race', interaction: 'collide', targetKind: 'obstacle', effect: 'damage', value: 10 },
+        { id: crypto.randomUUID(), sourceCapability: 'race', interaction: 'collide', targetKind: 'wall', effect: 'damage', value: 15 },
+        { id: crypto.randomUUID(), sourceCapability: 'race', interaction: 'collide', targetCapability: 'race', effect: 'damage', value: 3 },
+        { id: crypto.randomUUID(), sourceCapability: 'race', interaction: 'reach', targetKind: 'finish', effect: 'finish' },
       ],
       trackPreset: options.track,
       trackLength: options.length,

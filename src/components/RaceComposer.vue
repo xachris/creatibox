@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RaceSpeciesPicker from './RaceSpeciesPicker.vue'
 import { reactive } from 'vue'
 import type { RacePresetOptions } from '../model/raceGenerator'
 import { raceAudio } from '../media/sound/audioDirector'
@@ -9,6 +10,8 @@ const emit = defineEmits<{
 }>()
 
 const draft = reactive<RacePresetOptions>({
+  playerKind: 'car',
+  opponentKinds: ['car', 'horse', 'human'],
   track: 'straight',
   length: 1,
   carShape: 'sport',
@@ -41,12 +44,13 @@ function create() {
       <header class="wizard-header">
         <div>
           <span class="wizard-kicker">快速创建比赛</span>
-          <h2>拼一场可以马上开的赛车</h2>
+          <h2>创建一场混合竞速</h2>
         </div>
         <button class="icon-button" @click="close">×</button>
       </header>
 
       <div class="race-composer-body">
+        <RaceSpeciesPicker v-model="draft.playerKind!" label="你的参赛者" />
         <section>
           <h3>赛道</h3>
           <div class="preset-row">
@@ -64,7 +68,7 @@ function create() {
           </div>
         </section>
 
-        <section>
+        <section v-if="draft.playerKind === 'car'">
           <h3>赛车</h3>
           <div class="preset-row">
             <button :class="{ selected: draft.carShape === 'classic' }" @click="choose(() => { draft.carShape='classic' })">Classic</button>
@@ -73,7 +77,7 @@ function create() {
           </div>
         </section>
 
-        <section>
+        <section v-if="draft.playerKind === 'car'">
           <h3>颜色</h3>
           <div class="preset-row">
             <button :class="{ selected: draft.color === 'red' }" @click="choose(() => { draft.color='red' })">红</button>
@@ -90,7 +94,7 @@ function create() {
           </div>
         </section>
 
-        <section>
+        <section v-if="draft.playerKind === 'car'">
           <h3>声音</h3>
           <div class="preset-row">
             <button :class="{ selected: draft.sound === 'light' }" @click="choose(() => { draft.sound='light' })">Light</button>
@@ -107,6 +111,7 @@ function create() {
         </section>
 
         <section>
+          <RaceSpeciesPicker v-for="(_, i) in draft.opponentKinds!.slice(0, draft.opponents)" :key="i" v-model="draft.opponentKinds![i]" :label="`CPU ${i + 1}`" />
           <h3>难度</h3>
           <div class="preset-row">
             <button :class="{ selected: draft.difficulty === 'easy' }" @click="choose(() => { draft.difficulty='easy' })">Easy</button>

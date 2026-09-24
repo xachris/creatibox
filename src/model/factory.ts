@@ -1,3 +1,4 @@
+import { RACE_DEFAULTS, RACE_SPECIES, normalizeProject } from './race'
 import { cloneData } from './clone'
 import type {
   CarShape,
@@ -9,10 +10,14 @@ import type {
   MotionPreset,
   OpponentProfile,
   SoundPreset,
+  RaceSpecies,
 } from './types'
 
 const defaults: Record<EntityKind, Pick<Entity, 'size' | 'color' | 'movable' | 'durability' | 'maxDurability' | 'maxSpeed'>> = {
-  car: { size: { x: 72, y: 42 }, color: 0xb91c1c, movable: true, durability: 100, maxDurability: 100, maxSpeed: 220 },
+  car: { size: { x: 72, y: 42 }, color: 0xb91c1c, movable: true, durability: 100, maxDurability: 100, maxSpeed: 260 },
+  horse: { size: { x: 66, y: 36 }, color: 0x996633, movable: true, durability: 100, maxDurability: 100, maxSpeed: 205 },
+  human: { size: { x: 32, y: 28 }, color: 0x2563eb, movable: true, durability: 100, maxDurability: 100, maxSpeed: 125 },
+  sheep: { size: { x: 44, y: 34 }, color: 0xf5f5dc, movable: true, durability: 100, maxDurability: 100, maxSpeed: 95 },
   road: { size: { x: 240, y: 96 }, color: 0x475569, movable: false, durability: 9999, maxDurability: 9999, maxSpeed: 0 },
   wall: { size: { x: 120, y: 28 }, color: 0x334155, movable: false, durability: 100, maxDurability: 100, maxSpeed: 0 },
   obstacle: { size: { x: 54, y: 54 }, color: 0xf59e0b, movable: false, durability: 80, maxDurability: 80, maxSpeed: 0 },
@@ -46,6 +51,8 @@ export interface CarOptions {
 
 export function createEntity(kind: EntityKind, x = 120, y = 120): Entity {
   const base = defaults[kind]
+  const preset = RACE_SPECIES.includes(kind as RaceSpecies) ? RACE_DEFAULTS[kind as RaceSpecies] : undefined
+  const race = preset ? { enabled: preset.enabled, maxSpeed: preset.maxSpeed, acceleration: preset.acceleration, brakePower: preset.brakePower, turnRate: preset.turnRate } : undefined
   return {
     id: crypto.randomUUID(),
     kind,
@@ -60,13 +67,15 @@ export function createEntity(kind: EntityKind, x = 120, y = 120): Entity {
     maxDurability: base.maxDurability,
     speed: 0,
     maxSpeed: base.maxSpeed,
-    controls: kind === 'car' ? { ...DEFAULT_CAR_CONTROLS } : undefined,
-    controlRole: kind === 'car' ? 'player' : undefined,
+    race,
+    movementStyle: preset?.movementStyle,
+    controls: preset ? { ...DEFAULT_CAR_CONTROLS } : undefined,
+    controlRole: preset ? 'player' : undefined,
     wheelCount: kind === 'car' ? 4 : undefined,
     carShape: kind === 'car' ? 'classic' : undefined,
-    motionPreset: kind === 'car' ? 'clean' : undefined,
+    motionPreset: preset ? 'clean' : undefined,
     soundPreset: kind === 'car' ? 'light' : undefined,
-    waypointIndex: kind === 'car' ? 1 : undefined,
+    waypointIndex: preset ? 1 : undefined,
   }
 }
 
@@ -91,6 +100,7 @@ export function createCar(options: CarOptions = {}, x = 180, y = 180): Entity {
     y: Math.max(28, Math.min(100, options.height ?? car.size.y)),
   }
   car.maxSpeed = Math.max(80, Math.min(420, options.maxSpeed ?? car.maxSpeed))
+  car.race!.maxSpeed = car.maxSpeed
   car.wheelCount = Math.max(2, Math.min(8, options.wheelCount ?? 4))
   car.carShape = options.carShape ?? 'classic'
   car.controls = { ...(options.controls ?? DEFAULT_CAR_CONTROLS) }
@@ -148,5 +158,18 @@ export function createStarterProject(): CreatiBoxProject {
 }
 
 export function cloneProject(project: CreatiBoxProject): CreatiBoxProject {
-  return cloneData(project)
+  return normalizeProject(cloneData(project))
+}
+
+export function createParticipant(kind: RaceSpecies, options: CarOptions = {}, x = 180, y = 180): Entity {
+  if (kind === 'car') return createCar(options, x, y)
+  const entity = createEntity(kind, x, y)
+  entity.name = options.name?.trim() || kind[0].toUpperCase() + kind.slice(1)
+  entity.controlRole = options.controlRole ?? 'player'
+  entity.controls = { ...(options.controls ?? DEFAULT_CAR_CONTROLS) }
+  entity.opponentProfile = options.opponentProfile
+  entity.motionPreset = options.motionPreset ?? 'clean'
+  entity.soundPreset = options.soundPreset ?? 'light'
+  entity.race!.maxSpeed = options.maxSpeed ?? RACE_DEFAULTS[kind].maxSpeed
+  return entity
 }

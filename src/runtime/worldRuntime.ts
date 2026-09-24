@@ -1,5 +1,5 @@
 import type { CreatiBoxProject, Entity, Vec2 } from '../model/types'
-import { cloneData } from '../model/clone'
+import { isRaceParticipant, normalizeProject, validateRaceCapability } from '../model/race'
 import {
   applyInteractionRule,
   closingSpeed,
@@ -22,7 +22,9 @@ export type RunPhase = 'countdown' | 'racing' | 'finished'
 export class WorldRuntime {
   readonly project: CreatiBoxProject
   readonly player: Entity
-  readonly cars: Entity[]
+  readonly participants: Entity[]
+  /** Legacy read-only API for existing integrations. */
+  get cars() { return this.participants }
   readonly contacts = new Set<string>()
   /** New impact contacts observed during the latest public step (for SFX/UI). */
   readonly collisionEvents = new Set<string>()
@@ -34,19 +36,28 @@ export class WorldRuntime {
   elapsed = 0
 
   constructor(source: CreatiBoxProject) {
-    this.project = cloneData(source)
+    this.project = normalizeProject(source)
     const world = this.project.world
-    const player = world.entities.find(e => e.kind === 'car' && e.controlRole !== 'computer')
-    if (!player) throw new Error('缺少玩家车。请进入编辑，将一辆赛车的控制角色设为玩家控制。')
+    world.entities.forEach(validateRaceCapability)
+    const players = world.entities.filter(e => isRaceParticipant(e) && e.controlRole === 'player')
+    const player = players[0]
+    if (players.length > 1) throw new Error('必须恰好一个玩家参赛者；当前存在多个玩家。')
+    if (!player) throw new Error('缺少玩家车/参赛者。请启用 race 并将一个参赛者设为玩家控制。')
     if (!world.trackPath || world.trackPath.length < 2 || world.trackPath.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y)) || world.trackPath.every(p => p.x === world.trackPath![0].x && p.y === world.trackPath![0].y)) {
       throw new Error('缺少有效赛道路径（trackPath）。请进入编辑，使用“快速比赛”生成赛道。')
     }
-    if (!world.entities.some(e => e.kind === 'finish') || !world.rules.some(r => r.sourceKind === 'car' && r.targetKind === 'finish' && r.interaction === 'reach' && r.effect === 'finish')) {
+    if (!world.entities.some(e => e.kind === 'finish') || world.entities.filter(isRaceParticipant).some(e => !world.entities.filter(t => t.kind === 'finish').some(t => matchingRule(world.rules, e, t)?.effect === 'finish'))) {
       throw new Error('缺少终点或完赛规则。请进入编辑，使用“快速比赛”重新生成完整赛道。')
     }
     this.player = player
-    this.cars = world.entities.filter(e => e.kind === 'car')
-    for (const car of this.cars) {
+    this.participants = world.entities.filter(isRaceParticipant)
+    for (const entity of this.participants) {
+      if (!['player', 'computer'].includes(entity.controlRole ?? '')) throw new Error(`${entity.name}: controlRole 无效`)
+    }
+    for (const rule of world.rules) {
+      if ((rule.sourceKind && rule.sourceCapability) || (rule.targetKind && rule.targetCapability)) throw new Error('规则 kind 与 capability 选择器不能同时使用')
+    }
+    for (const car of this.participants) {
       car.speed = 0
       car.state = car.durability <= 0 ? 'Broken' : 'Idle'
       car.waypointIndex = 1
@@ -75,10 +86,10 @@ export class WorldRuntime {
     this.elapsed += dt
     const world = this.project.world
     const path = world.trackPath!
-    for (const car of this.cars) {
+    for (const car of this.participants) {
       if (car.state === 'Finished' || car.state === 'Broken') continue
-      if (car.controlRole === 'computer') updateComputerCar(car, path, dt)
-      else updatePlayerCar(car, dt, keys)
+      if (car.controlRole === 'computer') updateComputerParticipant(car, path, dt, this.participants)
+      else updatePlayerParticipant(car, dt, keys)
       const index = car.waypointIndex ?? 1
       if (index < path.length - 1 && Math.hypot(path[index].x - car.position.x, path[index].y - car.position.y) < 110) {
         car.waypointIndex = index + 1
@@ -99,7 +110,7 @@ export class WorldRuntime {
 
     if (this.player.state === 'Finished' || this.player.state === 'Broken') {
       this.phase = 'finished'
-      for (const car of this.cars) car.speed = 0
+      for (const car of this.participants) car.speed = 0
     }
   }
 }
@@ -110,28 +121,45 @@ function normalizeAngle(angle: number) {
   return angle
 }
 
-function updateComputerCar(car: Entity, path: Vec2[], dt: number) {
+function updateComputerParticipant(car: Entity, path: Vec2[], dt: number, participants: Entity[]) {
   if (path.length < 2 || car.state === 'Finished' || car.state === 'Broken') return
   const index = Math.min(car.waypointIndex ?? 1, path.length - 1)
   const target = path[index]
-  const dx = target.x - car.position.x
-  const dy = target.y - car.position.y
+  let dx = target.x - car.position.x
+  let dy = target.y - car.position.y
+  let trafficLimit = Infinity
+  // Shared local overtaking: steer around slower bodies before touching them.
+  const heading = Math.atan2(dy, dx)
+  for (const other of participants) {
+    if (other === car || other.state === 'Finished') continue
+    const ox = other.position.x - car.position.x, oy = other.position.y - car.position.y
+    const ahead = ox * Math.cos(heading) + oy * Math.sin(heading)
+    const lateral = -ox * Math.sin(heading) + oy * Math.cos(heading)
+    const clearance = (car.size.y + other.size.y) / 2 + 12
+    if (ahead > 0 && ahead < (car.size.x + other.size.x) / 2 + 130 && Math.abs(lateral) < clearance && other.speed < car.race!.maxSpeed) {
+      const side = lateral >= 0 ? -1 : 1
+      dx = Math.cos(heading) * 110 - Math.sin(heading) * side * (clearance + 20)
+      dy = Math.sin(heading) * 110 + Math.cos(heading) * side * (clearance + 20)
+      trafficLimit = Math.min(trafficLimit, Math.max(35, other.speed))
+      break
+    }
+  }
 
   const desired = Math.atan2(dy, dx)
   const delta = normalizeAngle(desired - car.rotation)
-  const turnRate = car.opponentProfile === 'easy' ? 1.65 : car.opponentProfile === 'fast' ? 2.65 : 2.15
+  const turnRate = car.race!.turnRate * (car.opponentProfile === 'easy' ? 0.69 : car.opponentProfile === 'fast' ? 1.1 : 0.9)
   car.rotation += Math.max(-turnRate * dt, Math.min(turnRate * dt, delta))
 
-  const acceleration = car.opponentProfile === 'easy' ? 105 : car.opponentProfile === 'fast' ? 155 : 130
+  const acceleration = car.race!.acceleration * (car.opponentProfile === 'easy' ? 0.64 : car.opponentProfile === 'fast' ? 0.94 : 0.79)
   // Slow before sharp bends so every profile can stay near the waypoint path.
-  const limit = Math.min(car.maxSpeed, Math.abs(delta) > 0.35 ? 100 : car.maxSpeed)
+  const limit = Math.min(trafficLimit, car.race!.maxSpeed, Math.abs(delta) > 0.35 ? 100 : car.race!.maxSpeed)
   car.speed = Math.max(0, Math.min(limit, car.speed + acceleration * dt))
   car.position.x += Math.cos(car.rotation) * car.speed * dt
   car.position.y += Math.sin(car.rotation) * car.speed * dt
   car.state = 'Moving'
 }
 
-function updatePlayerCar(car: Entity, dt: number, keys: ReadonlySet<string>) {
+function updatePlayerParticipant(car: Entity, dt: number, keys: ReadonlySet<string>) {
   if (car.state === 'Broken' || car.state === 'Finished') return
 
   const controls = car.controls ?? {
@@ -148,13 +176,13 @@ function updatePlayerCar(car: Entity, dt: number, keys: ReadonlySet<string>) {
   const left = keys.has(controls.left.toLowerCase())
   const right = keys.has(controls.right.toLowerCase())
 
-  if (forward || primary) car.speed = Math.min(car.maxSpeed, car.speed + (primary ? 210 : 165) * dt)
-  else car.speed = Math.max(0, car.speed - 60 * dt)
+  if (forward || primary) car.speed = Math.min(car.race!.maxSpeed, car.speed + (car.race!.acceleration * (primary ? 210 / 165 : 1)) * dt)
+  else car.speed = Math.max(0, car.speed - (car.movementStyle === 'runner' ? car.race!.brakePower : 60) * dt)
 
-  if (braking) car.speed = Math.max(0, car.speed - 250 * dt)
+  if (braking) car.speed = Math.max(0, car.speed - car.race!.brakePower * dt)
 
   const turn = (right ? 1 : 0) - (left ? 1 : 0)
-  car.rotation += turn * 2.4 * dt * Math.max(0.25, car.speed / Math.max(car.maxSpeed, 1))
+  car.rotation += turn * car.race!.turnRate * dt * (car.movementStyle === 'runner' ? 1 : Math.max(0.25, car.speed / Math.max(car.race!.maxSpeed, 1)))
 
   if (car.speed > 0) {
     car.state = 'Moving'
@@ -204,7 +232,7 @@ function applyImpact(a: Entity, b: Entity, nx: number, ny: number, closing: numb
 
   if (aMove && bMove) {
     a.speed = Math.max(0, a.speed - closing * 0.55)
-    b.speed = Math.min(b.maxSpeed, Math.max(0, b.speed - closing * 0.2) + closing * 0.18)
+    b.speed = Math.min(b.race!.maxSpeed, Math.max(0, b.speed - closing * 0.2) + closing * 0.18)
     const yaw = Math.atan2(ny, nx) * 0.05
     a.rotation -= yaw
     b.rotation += yaw
@@ -231,16 +259,16 @@ function fireDamageRules(
   closing: number,
 ) {
   if (closing < IMPACT_DAMAGE_SPEED) return
-  if (a.kind === 'car' && b.kind === 'car') {
+  if (isRaceParticipant(a) && isRaceParticipant(b)) {
     const rule = matchingRule(rules, a, b)
     if (rule) applyInteractionRule(a, b, rule)
     return
   }
-  if (a.kind === 'car') {
+  if (isRaceParticipant(a)) {
     const rule = matchingRule(rules, a, b)
     if (rule) applyInteractionRule(a, b, rule)
   }
-  if (b.kind === 'car') {
+  if (isRaceParticipant(b)) {
     const rule = matchingRule(rules, b, a)
     if (rule) applyInteractionRule(b, a, rule)
   }
@@ -260,7 +288,7 @@ function resolvePair(
 ) {
   // Finish is a trigger gate, not a solid bumper.
   if (a.kind === 'finish' || b.kind === 'finish') {
-    const car = a.kind === 'car' ? a : b.kind === 'car' ? b : null
+    const car = isRaceParticipant(a) ? a : isRaceParticipant(b) ? b : null
     const finish = a.kind === 'finish' ? a : b.kind === 'finish' ? b : null
     if (!car || !finish || car.state === 'Finished' || car.state === 'Broken') return
     if ((car.waypointIndex ?? 1) < path.length - 1) return
@@ -280,7 +308,7 @@ function resolvePair(
   }
 
   if (!isSolidBody(a) || !isSolidBody(b)) return
-  if (a.kind !== 'car' && b.kind !== 'car') return
+  if (!isRaceParticipant(a) && !isRaceParticipant(b)) return
 
   const manifold = overlapManifold(a, b)
   const key = contactKey(a, b)
@@ -324,6 +352,7 @@ export function resolvePhysics(
   finishOrder: string[],
 ) {
   const impulseThisFrame = new Set<string>()
+  const priorFinishCount = finishOrder.length
   // A few iterations clear stacked car piles in one frame.
   for (let pass = 0; pass < 4; pass++) {
     for (let i = 0; i < entities.length; i++) {
@@ -343,4 +372,23 @@ export function resolvePhysics(
       }
     }
   }
+  const arrived = finishOrder.splice(priorFinishCount).sort()
+  finishOrder.push(...arrived)
+}
+
+/** Stable progress order; unfinished entries never acquire a final place. */
+export function raceStandings(run: WorldRuntime) {
+  const path = run.project.world.trackPath!
+  const progress = (entity: Entity) => {
+    const i = Math.min(entity.waypointIndex ?? 1, path.length - 1)
+    const a = path[i - 1], b = path[i]
+    const dx = b.x - a.x, dy = b.y - a.y
+    const projection = ((entity.position.x - a.x) * dx + (entity.position.y - a.y) * dy) / (dx * dx + dy * dy || 1)
+    return i - 1 + Math.max(0, Math.min(1, projection))
+  }
+  return [...run.participants].sort((a, b) => {
+    const ai = run.finishOrder.indexOf(a.id), bi = run.finishOrder.indexOf(b.id)
+    if (ai >= 0 || bi >= 0) return (ai < 0 ? Infinity : ai) - (bi < 0 ? Infinity : bi)
+    return progress(b) - progress(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  })
 }

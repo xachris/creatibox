@@ -2,6 +2,16 @@
 
 ## 2026-09-24
 
+### Unified Race phase one implemented
+
+- Generalized the existing `WorldRuntime` from car-only filtering to `RaceCapability` participants. Car, Horse, Human and Sheep now share countdown, player controls, waypoint AI, camera, collision, finish, ranking and restart.
+- Added idempotent legacy-car normalization, capability rules, stable progress ranking, mixed-size start grids and persistence of species, movement style, controls, profiles, visuals and audio settings.
+- Extended the existing race creation flow with one player species and 0–3 independently selected CPU species; car-only shape/color/audio choices stay hidden for animals.
+- Added PixiJS vector Horse, Human and Sheep renderers with speed/distance-driven vehicle, runner and hoofed motion, plus player engine, hoofbeat and footstep routing through the existing AudioDirector.
+- Automated validation: 214 tests, including 72 CPU environment/species cases, 72 mixed player-input simulations, same-species and directed pair races, compatibility, ranking, collision, persistence and audio lifecycle coverage. Typecheck and production build pass.
+- Browser validation: completed Horse + Car/Human/Sheep and Human + Horse/Sheep/Car from Home through result on the actual app. Both players finished; restart, HUD, type-specific review and hidden car controls were observed.
+- Kept the existing Railway project/service/domain; no AnimalWorld runtime, service or homepage entry was added.
+
 ### Animal World × Unified Race planning
 
 - Added `docs/18_ANIMAL_WORLD_UNIFIED_RACE_PLAN.md`: evolve Racing into Unified Race / Race World, with Car, Horse, Human and Sheep sharing RaceParticipant / RaceCapability, controls, waypoint AI, camera, finish, ranking and restart.

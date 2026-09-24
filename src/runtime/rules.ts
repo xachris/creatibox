@@ -1,3 +1,4 @@
+import { isRaceParticipant } from '../model/race'
 import type { Entity, Rule } from '../model/types'
 
 function projectionRadius(entity: Entity, angle: number) {
@@ -63,8 +64,8 @@ export function applyInteractionRule(source: Entity, target: Entity, rule: Rule)
 
 export function matchingRule(rules: Rule[], source: Entity, target: Entity): Rule | undefined {
   return rules.find((rule) =>
-    rule.sourceKind === source.kind
-    && rule.targetKind === target.kind
+    (rule.sourceCapability === 'race' ? !rule.sourceKind && isRaceParticipant(source) : rule.sourceKind === source.kind)
+    && (rule.targetCapability === 'race' ? !rule.targetKind && isRaceParticipant(target) : rule.targetKind === target.kind)
     && ((rule.interaction === 'collide' && target.kind !== 'finish')
       || (rule.interaction === 'reach' && target.kind === 'finish')),
   )
@@ -74,17 +75,17 @@ export function isSolidBody(entity: Entity): boolean {
   // Finish is a trigger; finished cars ghost so others can still cross the line.
   // Trees / road / start are decorative. Broken wrecks stay solid.
   if (entity.state === 'Finished') return false
-  return entity.kind === 'car' || entity.kind === 'wall' || entity.kind === 'obstacle'
+  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) || entity.kind === 'wall' || entity.kind === 'obstacle'
 }
 
 /** Self-propelled bodies that carry arcade velocity. */
 export function isMovableBody(entity: Entity): boolean {
-  return entity.kind === 'car' && entity.state !== 'Broken' && entity.state !== 'Finished'
+  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) && entity.state !== 'Broken' && entity.state !== 'Finished'
 }
 
 /** Bodies that can be nudged by separation (includes wrecks). */
 export function isShovableBody(entity: Entity): boolean {
-  return entity.kind === 'car' && entity.state !== 'Finished'
+  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) && entity.state !== 'Finished'
 }
 
 /** Closing speed along contact normal (positive = approaching). */

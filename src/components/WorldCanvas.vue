@@ -2,7 +2,8 @@
 import { Application, Container, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CreatiBoxProject, Entity, Vec2 } from '../model/types'
-import { WorldRuntime } from '../runtime/worldRuntime'
+import { drawLivingParticipant } from '../render/participant'
+import { WorldRuntime, raceStandings } from '../runtime/worldRuntime'
 import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 import { raceAudio } from '../media/sound/audioDirector'
 
@@ -36,6 +37,7 @@ let dragging: { id: string; offsetX: number; offsetY: number } | null = null
 const keys = new Set<string>()
 const muted = ref(raceAudio.isMuted())
 let previousPhase: string | null = null
+const gait = new Map<string, { x: number; y: number; distance: number }>()
 
 
 
@@ -68,7 +70,12 @@ function drawEntity(entity: Entity) {
   const selected = props.mode === 'edit' && entity.id === props.selectedId
   const alpha = entity.state === 'Broken' ? 0.42 : 1
 
-  if (entity.kind === 'tree') {
+  const previous = gait.get(entity.id)
+  const distance = (previous?.distance ?? 0) + (previous ? Math.hypot(entity.position.x - previous.x, entity.position.y - previous.y) : 0)
+  gait.set(entity.id, { x: entity.position.x, y: entity.position.y, distance })
+  if (drawLivingParticipant(graphic, entity, distance)) {
+    if (selected) graphic.circle(0, 0, 32).stroke({ width: 2, color: 0x2563eb })
+  } else if (entity.kind === 'tree') {
     graphic
       .rect(-6, 4, 12, entity.size.y * 0.45)
       .fill(0x7c4a2d)
@@ -123,7 +130,7 @@ function drawEntity(entity: Entity) {
         .stroke({ width: 2, color: 0xffffff, alpha: 0.62 })
     }
 
-    if (props.mode === 'run' && entity.motionPreset === 'dynamic' && entity.speed > entity.maxSpeed * 0.55) {
+    if (props.mode === 'run' && entity.motionPreset === 'dynamic' && entity.speed > (entity.race?.maxSpeed ?? 260) * 0.55) {
       graphic
         .moveTo(-entity.size.x * 0.65, -entity.size.y * 0.22)
         .lineTo(-entity.size.x * 1.15, -entity.size.y * 0.22)
@@ -183,14 +190,14 @@ function syncHud() {
   phase.value = runtime.phase
   countdown.value = Math.ceil(runtime.countdown - 1e-8)
   elapsed.value = runtime.elapsed
-  racers.value = runtime.cars.map(car => ({
+  racers.value = raceStandings(runtime).map(car => ({
     id: car.id, name: car.name, speed: Math.round(car.speed),
     checkpoint: (car.waypointIndex ?? 1) - 1, finished: car.state === 'Finished',
   }))
   if (runtime.phase === 'finished') {
     result.value = runtime.player.state === 'Finished'
       ? `你已抵达终点！第 ${runtime.finishOrder.indexOf(runtime.player.id) + 1} 名 · ${runtime.elapsed.toFixed(1)} 秒`
-      : '赛车受损无法继续，重赛再试一次吧。'
+      : '已退出比赛，重赛再试一次吧。'
   }
 }
 
@@ -214,7 +221,7 @@ function syncRaceAudio() {
     const braking = keys.has(controls.brake.toLowerCase())
     raceAudio.syncEngine({
       speed: player.speed,
-      maxSpeed: player.maxSpeed,
+      maxSpeed: player.race!.maxSpeed,
       accelerating,
       braking,
     })
@@ -230,6 +237,8 @@ function syncRaceAudio() {
 
 function initializeRuntime() {
   keys.clear()
+  gait.clear()
+  raceAudio.stopAll()
   dragging = null
   runtime = null
   runtimeProject = null
@@ -244,7 +253,7 @@ function initializeRuntime() {
     runtime = new WorldRuntime(props.project)
     runtimeProject = runtime.project
     previousPhase = null
-    raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id)
+    raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id, runtime.player.movementStyle)
     muted.value = raceAudio.isMuted()
     const c = runtime.player.controls ?? DEFAULT_CAR_CONTROLS
     const label = (key?: string) => key === ' ' ? 'Space' : ({ arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→' }[key?.toLowerCase() ?? ''] ?? key?.toUpperCase() ?? '无')
@@ -372,7 +381,7 @@ onBeforeUnmount(() => {
         <strong>{{ phase === 'countdown' ? '准备出发' : phase === 'finished' ? '比赛结束' : '比赛中' }} · {{ elapsed.toFixed(1) }} 秒</strong>
         <span>{{ controlHint }}</span>
         <div class="race-standings" aria-label="比赛进度">
-          <span v-for="car in racers" :key="car.id">{{ car.name }} · {{ car.finished ? '已完赛' : `速度 ${car.speed} · 路标 ${car.checkpoint}` }}</span>
+          <span v-for="car in racers" :key="car.id">{{ car.name }} · {{ car.finished ? '已完赛' : phase === 'finished' ? '未完赛' : `速度 ${car.speed} · 路标 ${car.checkpoint}` }}</span>
         </div>
       </div>
       <div v-if="phase === 'countdown' || (phase === 'racing' && elapsed < 0.8)" class="race-countdown" role="status">{{ phase === 'countdown' ? countdown : 'GO!' }}</div>

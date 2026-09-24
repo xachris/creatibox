@@ -4,7 +4,7 @@
 
 将现有 Racing Creator 泛化为 **Unified Race / Race World**，让 Car、Horse、Human、Sheep 在同一个世界、同一条赛道上比赛。Animal World 的第一步是融入已有世界，而不是另建一个独立动物游戏。
 
-本文是正式开发规划，**尚未实现**。本次仅新增规划并更新 README 索引与 CHANGELOG，不修改 runtime、UI、资源、依赖或部署，也不提升产品版本。以下开发范围、接口示意与验收要求供后续实现使用，不代表当前产品已经具备这些能力。
+本文是正式开发规划。**第一阶段已于 2026-09-24 实现并完成自动测试、浏览器验收与原 Railway 服务部署。** 工程细则和验收记录见 `19_UNIFIED_RACE_IMPLEMENTATION_SPEC.md` 与 `16_CURSOR_AGENT_WORK_LOG.md`。Horse + Rider、生态行为等仍属于后续阶段。
 
 当前代码基线：`main` @ `70ef38276564cec0c07baac87817eabd153e281e`。
 
@@ -73,7 +73,7 @@ Entity + RaceCapability → RaceParticipant
 
 能力决定是否参赛，kind 决定实体身份。不要删除 `Entity.kind = 'car'`，也不要为每个物种复制一份比赛运行时。
 
-以下为接口方向，后续实现应结合现有 schema 迁移落地：
+以下接口已在第一阶段落地：
 
 ```ts
 type MovementStyle = 'vehicle' | 'runner' | 'hoofed'
@@ -215,11 +215,11 @@ sourceCapability = race
 4. **音效扩展**：复用 director 接入 engine / hoofbeat / footstep，验证静音、停止与重赛清理。
 5. **完整验收**：完成下表的自动与浏览器检查，记录证据和已知边界，再更新实现状态。
 
-后续代码任务应保持 typecheck → test → build 通过；本次文档提交只做内容、链接、编号与差异检查，不宣称这些未来能力已通过测试，也不发起部署。
+第一阶段已保持 typecheck → test → build 通过，并完成两场浏览器混合竞速；今后扩展继续沿用这些门禁。
 
 ---
 
-## 9. 测试矩阵（后续实现验收）
+## 9. 测试矩阵（第一阶段已实现）
 
 | 维度 | 覆盖组合 / 场景 | 通过条件 |
 | --- | --- | --- |

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isRaceParticipant } from './model/race'
 import { cloneData } from './model/clone'
 import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
@@ -35,6 +36,9 @@ const selected = computed(() =>
 
 const palette: { kind: EntityKind; label: string }[] = [
   { kind: 'car', label: '赛车' },
+  { kind: 'horse', label: '马' },
+  { kind: 'human', label: '人' },
+  { kind: 'sheep', label: '羊' },
   { kind: 'road', label: '道路' },
   { kind: 'wall', label: '墙' },
   { kind: 'obstacle', label: '障碍' },
@@ -98,7 +102,7 @@ function createGuidedCar(result: CarWizardResult) {
 function createPresetRace(options: RacePresetOptions) {
   snapshot()
   project.value = createRaceProject(options)
-  selectedId.value = project.value.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole === 'player')?.id ?? null
+  selectedId.value = project.value.world.entities.find((entity) => isRaceParticipant(entity) && entity.controlRole === 'player')?.id ?? null
   showRaceComposer.value = false
 }
 
@@ -110,7 +114,7 @@ function enterRunMode() {
 function startRacingGame(options: RacingLaunchOptions) {
   snapshot()
   project.value = createRaceProject(options)
-  selectedId.value = project.value.world.entities.find((entity) => entity.kind === 'car' && entity.controlRole === 'player')?.id ?? null
+  selectedId.value = project.value.world.entities.find((entity) => isRaceParticipant(entity) && entity.controlRole === 'player')?.id ?? null
   screen.value = 'editor'
   enterRunMode()
 }
@@ -377,7 +381,7 @@ function setColor(value: string) {
             />
           </label>
 
-          <template v-if="selected.kind === 'car'">
+          <template v-if="selected.race">
             <label>
               控制角色
               <select v-model="selected.controlRole" :disabled="mode === 'run'" @focus="beginPropertyEdit">
@@ -387,8 +391,8 @@ function setColor(value: string) {
             </label>
             <label>
               最大速度
-              <input v-model.number="selected.maxSpeed" type="range" min="80" max="420" step="10" :disabled="mode === 'run'" @pointerdown="beginPropertyEdit" />
-              <span class="value">{{ selected.maxSpeed }}</span>
+              <input v-model.number="selected.race.maxSpeed" type="range" min="80" max="420" step="10" :disabled="mode === 'run'" @pointerdown="beginPropertyEdit" />
+              <span class="value">{{ selected.race.maxSpeed }}</span>
             </label>
             <label>
               初始耐久
@@ -411,7 +415,7 @@ function setColor(value: string) {
         <div class="rules-card">
           <strong>当前世界规则</strong>
           <div v-for="rule in project.world.rules" :key="rule.id" class="rule-line">
-            当 {{ rule.sourceKind }} {{ rule.interaction }} {{ rule.targetKind }}
+            当 {{ rule.sourceCapability ?? rule.sourceKind }} {{ rule.interaction }} {{ rule.targetCapability ?? rule.targetKind }}
             <span>→ {{ rule.effect }} {{ rule.value ?? '' }}</span>
           </div>
         </div>

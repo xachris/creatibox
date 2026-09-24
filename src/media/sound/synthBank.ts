@@ -194,3 +194,21 @@ export function clearSoundBanks() {
   bankCache.clear()
   uiBank = null
 }
+
+const movementCache = new Map<string, string>()
+/** Short local percussion phrases; rate controls cadence, with no timers. */
+export function getMovementLoop(style: 'runner' | 'hoofed'): string {
+  const cached = movementCache.get(style)
+  if (cached) return cached
+  const sampleRate = 44100
+  const phrase = new Float32Array(sampleRate * .6)
+  const hoof = style === 'hoofed'
+  const hit = mixSamples(
+    renderTone(hoof ? .055 : .085, hoof ? 520 : 130, { type: hoof ? 'triangle' : 'sine', attack: .002, release: .05, gain: .3, slideTo: hoof ? 260 : 65 }),
+    lowPass(renderTone(.065, 90, { type:'noise', gain:hoof ? .18 : .1, attack:.002, release:.06 }), hoof ? .3 : .08),
+  )
+  for (const offset of (hoof ? [0, .14, .3, .44] : [0, .3])) phrase.set(hit, Math.floor(offset * sampleRate))
+  const uri = encodeWavDataUri(phrase, sampleRate)
+  movementCache.set(style, uri)
+  return uri
+}

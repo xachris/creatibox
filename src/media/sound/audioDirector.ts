@@ -1,6 +1,6 @@
 import { Howl, Howler } from 'howler'
-import type { SoundPreset } from '../../model/types'
-import { getSoundBank, getUiOneShots, type OneShotId } from './synthBank'
+import type { MovementStyle, SoundPreset } from '../../model/types'
+import { getMovementLoop, getSoundBank, getUiOneShots, type OneShotId } from './synthBank'
 
 export type FinishSoundKind = 'win' | 'place' | 'broken'
 
@@ -36,6 +36,8 @@ function writeVolume(value: number) {
 }
 
 class AudioDirector {
+  private style: MovementStyle = 'vehicle'
+  private steps: Howl | null = null
   private unlocked = false
   private muted = readMuted()
   private masterVolume = readVolume()
@@ -80,14 +82,14 @@ class AudioDirector {
   /** Must run inside a user gesture so browsers allow playback. */
   unlock() {
     if (this.unlocked) {
-      try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
+      try { void Howler.ctx?.resume?.()?.catch(() => {}) } catch { /* ignore */ }
       return
     }
     this.unlocked = true
     if (this.masterVolume <= 0) this.masterVolume = 0.7
     Howler.mute(this.muted)
     Howler.volume(this.masterVolume)
-    try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
+    try { void Howler.ctx?.resume?.()?.catch(() => {}) } catch { /* ignore */ }
     this.ensureUiSounds()
   }
 
@@ -100,9 +102,10 @@ class AudioDirector {
     this.playOneShot(id, volume)
   }
 
-  beginRace(soundPreset: SoundPreset, playerId: string) {
+  beginRace(soundPreset: SoundPreset, playerId: string, style: MovementStyle = 'vehicle') {
     this.unlock()
     this.stopAll()
+    this.style = style
     this.preset = soundPreset
     this.playerId = playerId
     this.lastTickSecond = -1
@@ -165,6 +168,15 @@ class AudioDirector {
       this.stopEngine()
       return
     }
+    if (this.style !== 'vehicle') {
+      if (state.speed <= 0) { this.stopEngine(); return }
+      if (!this.steps) this.loadPreset(this.preset)
+      const ratio = Math.min(1, Math.max(0, state.speed / Math.max(state.maxSpeed, 1)))
+      this.steps?.rate(.5 + ratio * 1.15)
+      this.steps?.volume(.2 + ratio * .45)
+      if (this.steps && !this.steps.playing()) this.steps.play()
+      return
+    }
     if (!this.idle || !this.move) this.loadPreset(this.preset)
 
     const ratio = Math.min(1, Math.max(0, state.speed / Math.max(state.maxSpeed, 1)))
@@ -212,6 +224,7 @@ class AudioDirector {
     this.idle?.unload(); this.idle = null
     this.move?.unload(); this.move = null
     this.brakeLoop?.unload(); this.brakeLoop = null
+    this.steps?.unload(); this.steps = null
   }
 
   private playOneShot(id: OneShotId, volume: number) {
@@ -220,7 +233,7 @@ class AudioDirector {
       this.masterVolume = 0.7
       Howler.volume(this.masterVolume)
     }
-    try { void Howler.ctx?.resume?.() } catch { /* ignore */ }
+    try { void Howler.ctx?.resume?.()?.catch(() => {}) } catch { /* ignore */ }
     const sound = this.oneShots.get(id)
     if (!sound) return
     sound.stop()
@@ -241,7 +254,7 @@ class AudioDirector {
       },
       onplayerror: (_id, err) => {
         console.warn('[raceAudio] playerror', err)
-        try { void Howler.ctx?.resume?.().then(() => { /* retried by later plays */ }) } catch { /* ignore */ }
+        try { void Howler.ctx?.resume?.()?.catch(() => {}).then(() => { /* retried by later plays */ }) } catch { /* ignore */ }
       },
     })
   }
@@ -258,20 +271,37 @@ class AudioDirector {
   private loadPreset(preset: SoundPreset) {
     this.preset = preset
     this.ensureUiSounds()
+    this.idle?.unload(); this.idle = null
+    this.move?.unload(); this.move = null
+    this.brakeLoop?.unload(); this.brakeLoop = null
+    this.steps?.unload(); this.steps = null
+    if (this.style !== 'vehicle') {
+      this.steps = this.makeHowl(getMovementLoop(this.style), { loop: true, volume: 0 })
+      return
+    }
     const bank = getSoundBank(preset)
-    this.idle?.unload()
-    this.move?.unload()
-    this.brakeLoop?.unload()
     this.idle = this.makeHowl(bank.loops.engineIdle, { loop: true, volume: 0.24 })
     this.move = this.makeHowl(bank.loops.engineMove, { loop: true, volume: 0 })
     this.brakeLoop = this.makeHowl(bank.oneShots.brake, { loop: true, volume: 0.32 })
   }
 
   private stopEngine() {
+    if (this.steps?.playing()) this.steps.stop()
     if (this.idle?.playing()) this.idle.stop()
     if (this.move?.playing()) this.move.stop()
     if (this.brakeLoop?.playing()) this.brakeLoop.stop()
   }
 }
 
-export const raceAudio = new AudioDirector()
+// Audio is optional: a device / library failure must never interrupt simulation.
+const director = new AudioDirector()
+export const raceAudio = new Proxy(director, {
+  get(target, key, receiver) {
+    const value = Reflect.get(target, key, receiver)
+    if (typeof value !== 'function') return value
+    return (...args: unknown[]) => {
+      try { return value.apply(target, args) }
+      catch (error) { console.warn('[raceAudio] unavailable', error) }
+    }
+  },
+})

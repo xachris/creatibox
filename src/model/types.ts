@@ -1,4 +1,14 @@
-export type EntityKind = 'car' | 'road' | 'wall' | 'obstacle' | 'tree' | 'start' | 'finish'
+export type RaceSpecies = 'car' | 'horse' | 'human' | 'sheep'
+export type MovementStyle = 'vehicle' | 'runner' | 'hoofed'
+export interface RaceCapability {
+  enabled: boolean
+  maxSpeed: number
+  acceleration: number
+  brakePower: number
+  turnRate: number
+}
+export type RaceParticipant = Entity & { race: RaceCapability }
+export type EntityKind = 'car' | 'horse' | 'human' | 'sheep' | 'road' | 'wall' | 'obstacle' | 'tree' | 'start' | 'finish'
 export type EntityState = 'Idle' | 'Moving' | 'Damaged' | 'Broken' | 'Finished'
 export type CarShape = 'classic' | 'sport' | 'boxy'
 export type ControlRole = 'player' | 'computer'
@@ -35,6 +45,8 @@ export interface Entity {
   maxDurability: number
   speed: number
   maxSpeed: number
+  race?: RaceCapability
+  movementStyle?: MovementStyle
   controls?: ControlScheme
   controlRole?: ControlRole
   wheelCount?: number
@@ -48,9 +60,11 @@ export interface Entity {
 
 export interface Rule {
   id: string
-  sourceKind: EntityKind
+  sourceKind?: EntityKind
+  sourceCapability?: 'race'
   interaction: 'collide' | 'reach'
-  targetKind: EntityKind
+  targetKind?: EntityKind
+  targetCapability?: 'race'
   effect: 'damage' | 'finish'
   value?: number
 }

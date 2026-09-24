@@ -100,6 +100,15 @@ V0.1 **不做**：账号、班级、教师后台、云同步、AI、网络多人
 
 ## 4. 会话记录
 
+### 2026-09-24 — Unified Race 第一阶段
+
+- 会话目标：按 `docs/18` 将现有赛车运行时泛化为 Car / Horse / Human / Sheep 混合竞速，并部署原 Railway 服务。
+- 分支：`main`；先独立提交 `docs/19_UNIFIED_RACE_IMPLEMENTATION_SPEC.md`，再实施代码。
+- 改动摘要：新增 RaceCapability / MovementStyle、旧车幂等迁移、能力规则、通用 participants / 排名、共享 CPU 避让、混合创建 UI、按尺寸起跑网格、三类动物矢量和 engine / hoofbeat / footstep 声音路由。
+- 自动验证：`npm install`、`npm run typecheck`、`npm test`（214 tests）、`npm run build` 全通过。矩阵包含 72 CPU 组合、72 mixed 玩家输入仿真、4 同类与 16 个有向物种配对覆盖，以及迁移、碰撞、排名、保存和声音生命周期。
+- 浏览器验证：真实页面从 Home 完成 Horse + Car/Human/Sheep、Human + Horse/Sheep/Car 两场直道比赛，均到达结果页；观察到倒计时、混合 HUD、四类矢量、类型选择、Car 专属选项隐藏、CPU 完赛、玩家完赛与名次。
+- 边界：沿用单圈、玩家结束即冻结和抽象耐久；持续运动声只播放玩家；没有 Horse + Rider、生态行为、联网、3D 或新服务。
+
 ### 2026-09-23 — 赛车碰撞物理（不可重叠 + 推开）
 
 - **会话目标**：车与车不可重叠；碰撞要把对方推开；补齐同类物理规律。

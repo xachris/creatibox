@@ -46,6 +46,7 @@ Entity → State → Action → Interaction → Transition
 - [Cursor 代理工作记录](docs/16_CURSOR_AGENT_WORK_LOG.md)
 - [赛车音效系统设计](docs/17_RACING_AUDIO_SFX_DESIGN.md)
 - [Animal World × Unified Race 开发规划](docs/18_ANIMAL_WORLD_UNIFIED_RACE_PLAN.md)
+- [Unified Race 工程实施规范](docs/19_UNIFIED_RACE_IMPLEMENTATION_SPEC.md)
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验
