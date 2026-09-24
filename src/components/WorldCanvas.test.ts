@@ -66,6 +66,32 @@ describe('WorldCanvas entry and restart', () => {
     expect(await progress('oblique')).toBe(await progress('top-down'))
   })
 
+  it('switches renderers without rebuilding or resetting the running world', async () => {
+    const w = mount(WorldCanvas, { props: { project: project(), mode: 'run', selectedId: null, viewMode: 'top-down' }, attachTo: document.body })
+    wrappers.push(w)
+    await flushPromises()
+    tick(5)
+    await flushPromises()
+    const canvas = w.get('[aria-label="赛车画布"]')
+    const progress = w.get('[aria-label="比赛进度"]').text()
+    expect(canvas.attributes('data-runtime-generation')).toBe('1')
+
+    await w.setProps({ viewMode: 'oblique' })
+    await flushPromises()
+    expect(canvas.attributes('data-view-mode')).toBe('oblique')
+    expect(canvas.attributes('data-runtime-generation')).toBe('1')
+    expect(w.get('[aria-label="比赛进度"]').text()).toBe(progress)
+
+    for (let index = 0; index < 50; index++) {
+      await w.setProps({ viewMode: index % 2 === 0 ? 'top-down' : 'oblique' })
+    }
+    tick(1)
+    await flushPromises()
+    expect(canvas.attributes('data-runtime-generation')).toBe('1')
+    expect(w.get('[aria-label="比赛进度"]').text()).not.toBe(progress)
+    expect(w.findAll('canvas')).toHaveLength(1)
+  })
+
   it('initializes on first run mount, counts down, follows player and restarts', async () => {
     const source = project()
     const w = mount(WorldCanvas, { props: { project: source, mode: 'run', selectedId: null }, attachTo: document.body })

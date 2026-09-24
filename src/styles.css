@@ -360,6 +360,23 @@ button:disabled { opacity: .45; cursor: default; }
   box-shadow: 0 8px 26px rgba(15, 23, 42, .18);
 }
 .control-hint strong { color: #fbbf24; }
+.view-switch {
+  display: inline-flex;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  pointer-events: auto;
+}
+.view-switch button {
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 10px;
+}
+.view-switch button[aria-pressed="true"] { background: #fff; color: #172033; }
 .canvas-column { position: relative; }
 
 .race-composer-card {
@@ -724,7 +741,7 @@ button:disabled { opacity: .45; cursor: default; }
 }
 
 /* Play view prioritizes the race; the same authoring world remains editable. */
-.playing .library, .playing .properties, .playing .topbar, .playing .statusbar, .playing .control-hint { display: none; }
+.playing .library, .playing .properties, .playing .topbar, .playing .statusbar { display: none; }
 .playing .workspace { grid-template-columns: minmax(0, 1fr); }
 .race-stage { position: relative; flex: 1; min-height: 0; display: flex; overflow: hidden; }
 .race-stage .world-canvas { outline: none; width: 100%; }

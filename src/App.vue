@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isRaceParticipant } from './model/race'
+import { createProjectViewPreferences, isRaceParticipant } from './model/race'
 import { cloneData } from './model/clone'
 import { computed, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
@@ -28,10 +28,7 @@ const showRaceComposer = ref(false)
 const screen = ref<'home' | 'launch' | 'editor'>('home')
 const hasRecentProject = ref(false)
 const saveError = ref('')
-const configuredRunViewMode = import.meta.env.DEV
-  && new URLSearchParams(window.location.search).get('view') === 'oblique'
-  ? 'oblique'
-  : 'top-down'
+const runViewMode = ref<'top-down' | 'oblique'>('top-down')
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -106,6 +103,7 @@ function createGuidedCar(result: CarWizardResult) {
 function createPresetRace(options: RacePresetOptions) {
   snapshot()
   project.value = createRaceProject(options)
+  runViewMode.value = 'top-down'
   selectedId.value = project.value.world.entities.find((entity) => isRaceParticipant(entity) && entity.controlRole === 'player')?.id ?? null
   showRaceComposer.value = false
 }
@@ -118,6 +116,7 @@ function enterRunMode() {
 function startRacingGame(options: RacingLaunchOptions) {
   snapshot()
   project.value = createRaceProject(options)
+  runViewMode.value = 'top-down'
   selectedId.value = project.value.world.entities.find((entity) => isRaceParticipant(entity) && entity.controlRole === 'player')?.id ?? null
   screen.value = 'editor'
   enterRunMode()
@@ -183,6 +182,7 @@ function redo() {
 function newProject() {
   snapshot()
   project.value = createStarterProject()
+  runViewMode.value = 'top-down'
   selectedId.value = null
 }
 
@@ -193,6 +193,7 @@ async function openFile(event: Event) {
   try {
     snapshot()
     project.value = await importProject(file)
+    runViewMode.value = project.value.view?.run.viewMode === 'oblique' ? 'oblique' : 'top-down'
     selectedId.value = null
     screen.value = 'editor'
     mode.value = 'edit'
@@ -207,6 +208,7 @@ onMounted(async () => {
   const saved = await loadAutosave().catch(() => { saveError.value = '无法读取本机存档，可导入项目继续。'; return undefined })
   if (saved && screen.value === 'home') {
     project.value = saved
+    runViewMode.value = saved.view?.run.viewMode === 'oblique' ? 'oblique' : 'top-down'
     hasRecentProject.value = true
   }
 })
@@ -225,6 +227,17 @@ function colorHex(color: number) {
 function setColor(value: string) {
   if (!selected.value) return
   selected.value.color = Number.parseInt(value.replace('#', ''), 16)
+}
+
+function setRunViewMode(viewMode: 'top-down' | 'oblique') {
+  if (mode.value !== 'run' || runViewMode.value === viewMode) return
+  runViewMode.value = viewMode
+  const preferences = createProjectViewPreferences(viewMode)
+  if (project.value.view) {
+    preferences.edit = { ...project.value.view.edit, viewMode: 'top-down', followMode: 'none' }
+    preferences.run = { ...project.value.view.run, viewMode, followMode: 'participant' }
+  }
+  project.value.view = preferences
 }
 </script>
 
@@ -328,12 +341,16 @@ function setColor(value: string) {
           <span>← → 转向</span>
           <span>↑ 前进 · ↓ 刹车</span>
           <span>Space 油门</span>
+          <div class="view-switch" role="group" aria-label="运行视角">
+            <button type="button" :aria-pressed="runViewMode === 'top-down'" @click="setRunViewMode('top-down')">俯视</button>
+            <button type="button" :aria-pressed="runViewMode === 'oblique'" @click="setRunViewMode('oblique')">斜视</button>
+          </div>
         </div>
         <WorldCanvas
           :project="project"
           :selected-id="selectedId"
           :mode="mode"
-          :view-mode="mode === 'run' ? configuredRunViewMode : 'top-down'"
+          :view-mode="mode === 'run' ? runViewMode : 'top-down'"
           @select="selectedId = $event"
           @move="moveEntity"
           @edit="mode = 'edit'"

@@ -80,8 +80,27 @@ export interface World {
   worldBounds?: { width: number; height: number }
 }
 
+export type ProjectViewMode = 'top-down' | 'oblique' | 'first-person'
+
+export interface ProjectViewState {
+  viewMode: ProjectViewMode
+  cameraTarget: string | null
+  zoom: number
+  rotation: number
+  pitch?: number
+  elevation?: number
+  followMode: 'none' | 'participant'
+}
+
+export interface ProjectViewPreferences {
+  version: 1
+  edit: ProjectViewState
+  run: ProjectViewState
+}
+
 export interface CreatiBoxProject {
   formatVersion: '0.1'
   name: string
   world: World
+  view?: ProjectViewPreferences
 }

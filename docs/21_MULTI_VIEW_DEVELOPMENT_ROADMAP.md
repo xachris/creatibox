@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-Phase 0 文档、Phase 1 Renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 Oblique polish 已完成。Phase 4–6 尚未启动；Oblique 当前只通过本地开发配置用于运行模式，没有产品化切换入口或斜视编辑，First-Person 未实现。
+Phase 0–4 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换并保存偏好；编辑仍固定 Top-Down，First-Person 未实现。Phase 5–6 尚未启动。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -18,7 +18,7 @@ Phase 0 文档、Phase 1 Renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 
 | 1 Renderer abstraction | 2–3 开发日 | Phase 0 | Top-Down 经适配层运行且无行为变化 | 2026-09-24 已完成 |
 | 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 2026-09-24 已完成 |
 | 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 2026-09-24 已完成 |
-| 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 未启动 |
+| 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 2026-09-24 已完成 |
 | 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 未启动，不承诺产品化 |
 | 6 First-Person MVP | Go 后再估算，暂留 5–10 开发日 | Phase 5 Go + 独立排期确认 | 复用 2D Runtime 的第一人称运行视图 | 条件阶段 |
 
@@ -144,6 +144,15 @@ Phase 0 文档、Phase 1 Renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 
 - AuthoringState 深比较及 undo/redo 栈保持不变，只有独立 ViewState / 偏好变化；不是将运行副本保存回项目。
 - 旧格式无 view、有效新 view、未知 viewVersion/模式、非法数字、失效目标均有兼容测试。
 
+### 完成记录（2026-09-24）
+
+- 运行画面增加“俯视 / 斜视”双按钮。切换只 dispose 当前 renderer、创建目标 renderer、更新 ViewState 并重新跟随同一玩家；不调用 `initializeRuntime`，不停止或重建 AudioDirector。
+- `WorldCanvas` 自动测试在比赛进行中往返切换 50 次：Runtime generation 始终为 1、canvas 始终为 1，切换瞬间 standings 不变，随后 elapsed 与比赛进度继续前进。
+- 项目 envelope 增加可选 `view.version=1` 和 edit/run 显示偏好。旧项目保持无 `view` 且默认 Top-Down；用户主动切换后才写入可选配置。自动保存、导入和导出沿用同一 normalization 路径。
+- 编辑偏好强制 Top-Down / none；运行当前支持 Top-Down / Oblique / participant。未知版本、First-Person、非法 zoom/rotation、损坏结构安全回退；zoom 限制 0.5–2，world 内容保持不变。
+- 浏览器实测从 33.7 秒 Top-Down 切到 Oblique 后继续至 41.2 秒，Runtime generation=1、canvas=1；返回首页、等待自动保存、刷新并继续项目后，运行偏好恢复 Oblique。控制台无 warning/error。
+- 247 项测试、typecheck 与 production build 通过。斜视编辑仍未开放，First-Person 仍隐藏；未部署。
+
 ---
 
 ## 8. Phase 5 — First-Person architecture spike
@@ -223,4 +232,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-下一轮若继续开发，从 Phase 4 View switching 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)实现不重建 Runtime 的 Top-Down ↔ Oblique 切换和可选视图偏好；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。
+下一轮若继续开发，从 Phase 5 First-Person architecture spike 开始，只做限时技术验证、候选比较与最小原型，并在证据满足前保持 No-Go；不自动进入 Phase 6。进度以证据更新，新增计划不等于已有代码能力。

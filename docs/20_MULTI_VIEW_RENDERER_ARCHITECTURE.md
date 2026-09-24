@@ -2,7 +2,7 @@
 
 ## 1. 文档目的与状态
 
-为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档、Phase 1 Top-Down renderer abstraction、Phase 2 Oblique MVP 与 Phase 3 Oblique polish 已完成；运行中视图切换与 First-Person 尚未实现。
+为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0–4 已完成，包括 Top-Down adapter、Oblique MVP / polish 和不中断 Runtime 的运行中切换；First-Person 尚未实现。
 
 设计基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`（2026-09-24）。当前四类竞速实体已经共用 WorldRuntime；本文不是再次实施 Unified Race，也不把视图能力标为已完成。[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)定义 Phase 0–6 的顺序与验收门禁。
 
@@ -89,7 +89,7 @@ Phase 1 已落地 `IWorldRenderer`、`TopDownRenderer`、`CameraController` 与 
 
 实际项目格式是 `CreatiBoxProject { formatVersion: '0.1', name, world }`；`04_DATA_SCHEMA.md` 的 `worlds[]` 是早期草案，不能按草案偷偷迁移当前文件。
 
-Phase 4 建议增加可选顶层 `view`，与 `world` 平级，由独立显示偏好 store 持有，序列化时合并到项目 envelope。示意（尚未实现）：
+Phase 4 已增加可选顶层 `view`，与 `world` 平级，由显示偏好状态持有并通过现有自动保存、导入和导出路径序列化：
 
 ```json
 {
@@ -104,7 +104,7 @@ Phase 4 建议增加可选顶层 `view`，与 `world` 平级，由独立显示�
 }
 ```
 
-该片段仅示意存档形状，不是可运行比赛。完整临时 ViewState 与持久化偏好分开：只保存用户选择的模式、zoom、朝向、可支持的 pitch/elevation、followMode 及可选目标引用；不保存逐帧 camera center、缓动过程或比赛进度。null 目标在运行时解析为玩家。
+该片段说明存档形状；完整临时 ViewState 与持久化偏好分开：只保存用户选择的模式、zoom、朝向、可支持的 pitch/elevation、followMode 及可选目标引用；不保存逐帧 camera center、缓动过程或比赛进度。null 目标在运行时解析为玩家。
 
 1. 没有 `view` 的旧 `.creatibox` 默认 Top-Down；不得给旧项目自动选择 Oblique。无项目配置时的本地偏好也不能覆盖这个兼容默认值。
 2. 新项目 `view` 可省略；World / Entity / Rule 结构及 `formatVersion: '0.1'` 不因显示偏好强制变化。旧应用可能丢弃未知 view 字段，不承诺其保留视图，但不能影响可运行世界数据。
@@ -241,7 +241,7 @@ Phase 3 本地内置浏览器、1280×678 画布、21 Entity 曲线赛记录为�
 
 后续必须验证同一 world/seed、相同逐 tick 输入与 dt 下，Top-Down / Oblique / 无 renderer 的 Runtime 结果一致；相机和显示随机数不能影响模拟。切换不重置 elapsed / waypoints / finishOrder，AuthoringState 和 undo 栈不受影响，旧项目默认 Top-Down。详细矩阵见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
-**Phase 0 Done Definition（已完成）：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，不开发代码、不部署，不把未来测试写成已通过。Phase 1–3 完成证据见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
+**Phase 0 Done Definition（已完成）：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，不开发代码、不部署，不把未来测试写成已通过。Phase 1–4 完成证据见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
 ## 12. 与既有规范的关系
 

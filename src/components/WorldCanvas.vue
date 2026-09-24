@@ -29,6 +29,7 @@ let renderer: IWorldRenderer | null = null
 let viewState: ViewState = { ...DEFAULT_EDIT_VIEW_STATE }
 let runtimeProject: CreatiBoxProject | null = null
 let runtime: WorldRuntime | null = null
+const runtimeGeneration = ref(0)
 let disposed = false
 const phase = ref('loading')
 const countdown = ref(3)
@@ -307,6 +308,7 @@ function initializeRuntime() {
   controlHint.value = ''
   try {
     runtime = new WorldRuntime(props.project)
+    runtimeGeneration.value += 1
     runtimeProject = runtime.project
     viewState = createRunViewState(runtime.player.id, props.viewMode ?? 'top-down')
     previousPhase = null
@@ -426,6 +428,15 @@ watch(() => props.mode, (mode) => {
   }
 })
 
+watch(() => props.viewMode, (viewMode) => {
+  if (!app || props.mode !== 'run' || !viewMode || renderer?.viewMode === viewMode) return
+  renderer?.dispose()
+  renderer = createWorldRenderer(app, viewMode)
+  viewState = { ...viewState, viewMode }
+  if (runtime) followPlayer(runtime.player)
+  render()
+})
+
 watch(() => props.project, () => {
   if (props.mode === 'edit') render()
 }, { deep: true })
@@ -449,7 +460,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="race-stage">
-    <div ref="host" class="world-canvas" tabindex="0" aria-label="赛车画布" />
+    <div
+      ref="host"
+      class="world-canvas"
+      tabindex="0"
+      aria-label="赛车画布"
+      :data-view-mode="mode === 'run' ? (viewMode ?? 'top-down') : 'top-down'"
+      :data-runtime-generation="runtimeGeneration"
+    />
     <template v-if="mode === 'run'">
       <div v-if="!error" class="race-hud">
         <strong>{{ phase === 'countdown' ? '准备出发' : phase === 'finished' ? '比赛结束' : '比赛中' }} · {{ elapsed.toFixed(1) }} 秒</strong>

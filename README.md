@@ -47,7 +47,7 @@ Entity → State → Action → Interaction → Transition
 - [赛车音效系统设计](docs/17_RACING_AUDIO_SFX_DESIGN.md)
 - [Animal World × Unified Race 开发规划](docs/18_ANIMAL_WORLD_UNIFIED_RACE_PLAN.md)
 - [Unified Race 工程实施规范](docs/19_UNIFIED_RACE_IMPLEMENTATION_SPEC.md)
-- [多视角 / 多渲染器架构设计](docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)（Phase 3 Oblique polish 已完成）
+- [多视角 / 多渲染器架构设计](docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)（Phase 4 双视图连续切换已完成）
 - [多视角开发进度与验收计划](docs/21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)（Phase 0–6）
 - [变更记录](docs/CHANGELOG.md)
 

@@ -24,6 +24,23 @@ UI、Creator 和 Runtime 不应该把世界规则写死在页面逻辑中。
 }
 ```
 
+当前 V0.1 实际文件使用单一 `world`，不是上面早期草案的 `worlds[]`。从 Multi-View Phase 4 起，可选顶层 `view` 保存显示偏好：
+
+```json
+{
+  "formatVersion": "0.1",
+  "name": "My Racing World",
+  "world": { "id": "world_001", "name": "Race", "entities": [], "rules": [] },
+  "view": {
+    "version": 1,
+    "edit": { "viewMode": "top-down", "cameraTarget": null, "zoom": 1, "rotation": 0, "followMode": "none" },
+    "run": { "viewMode": "oblique", "cameraTarget": null, "zoom": 1, "rotation": 0, "followMode": "participant" }
+  }
+}
+```
+
+`view` 缺省时按 Top-Down 打开，旧 `.creatibox` 不需要迁移。显示偏好不属于 Entity 或 Rule；非法版本、未支持模式和非有限相机数值在读取时安全回退，不使有效 world 失效。
+
 ## 3. World
 
 ```json

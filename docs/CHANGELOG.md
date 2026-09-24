@@ -2,6 +2,14 @@
 
 ## 2026-09-24
 
+### Multi-View Phase 4 continuous view switching
+
+- Added student-facing Top-Down / Oblique controls during Run. Switching replaces only the renderer and ViewState while preserving the same WorldRuntime, ticker, input state, audio lifecycle, elapsed time, waypoints and finish order.
+- Added optional versioned project `view` preferences beside `world`; legacy projects remain view-free and default Top-Down. Autosave/import/export normalize unsupported modes, versions and invalid camera values without changing world data.
+- Added a 50-switch continuity regression: one Runtime generation, one canvas, unchanged standings at the switch boundary and continued progress afterward.
+- Browser QA switched a live race from 33.7 s Top-Down to Oblique and observed continued progress at 41.2 s with one Runtime/canvas; autosave + reload restored Oblique and produced no console warning/error.
+- Validation: typecheck, production build and 247 tests pass. Edit remains Top-Down, First-Person remains hidden, and no deployment was performed.
+
 ### Multi-View Phase 3 Oblique polish
 
 - Replaced sprite-center depth guesses with stable deepest-footprint sorting for rotated and differently sized entities; added conservative viewport culling that never removes logical entities from WorldRuntime.
