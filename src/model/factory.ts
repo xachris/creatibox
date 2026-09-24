@@ -15,9 +15,11 @@ import type {
 
 const defaults: Record<EntityKind, Pick<Entity, 'size' | 'color' | 'movable' | 'durability' | 'maxDurability' | 'maxSpeed'>> = {
   car: { size: { x: 72, y: 42 }, color: 0xb91c1c, movable: true, durability: 100, maxDurability: 100, maxSpeed: 260 },
-  horse: { size: { x: 66, y: 36 }, color: 0x996633, movable: true, durability: 100, maxDurability: 100, maxSpeed: 205 },
-  human: { size: { x: 32, y: 28 }, color: 0x2563eb, movable: true, durability: 100, maxDurability: 100, maxSpeed: 125 },
-  sheep: { size: { x: 44, y: 34 }, color: 0xf5f5dc, movable: true, durability: 100, maxDurability: 100, maxSpeed: 95 },
+  // Race participant sizes are SAT collision bodies. Keep them large enough to
+  // contain the full vector silhouette so bodies never appear to overlap.
+  horse: { size: { x: 92, y: 52 }, color: 0x996633, movable: true, durability: 100, maxDurability: 100, maxSpeed: 205 },
+  human: { size: { x: 54, y: 44 }, color: 0x2563eb, movable: true, durability: 100, maxDurability: 100, maxSpeed: 125 },
+  sheep: { size: { x: 62, y: 50 }, color: 0xf5f5dc, movable: true, durability: 100, maxDurability: 100, maxSpeed: 95 },
   road: { size: { x: 240, y: 96 }, color: 0x475569, movable: false, durability: 9999, maxDurability: 9999, maxSpeed: 0 },
   wall: { size: { x: 120, y: 28 }, color: 0x334155, movable: false, durability: 100, maxDurability: 100, maxSpeed: 0 },
   obstacle: { size: { x: 54, y: 54 }, color: 0xf59e0b, movable: false, durability: 80, maxDurability: 80, maxSpeed: 0 },

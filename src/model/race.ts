@@ -14,6 +14,11 @@ export function isRaceParticipant(entity: Entity): entity is RaceParticipant {
 export function normalizeProject(source: CreatiBoxProject): CreatiBoxProject {
   const project = cloneData(source)
   for (const entity of project.world.entities) {
+    // First-phase animals and Human are self-contained participants. Remove the
+    // accidental car-driver field written by the first Unified Race release.
+    if (RACE_SPECIES.includes(entity.kind as RaceSpecies) && entity.kind !== 'car') {
+      delete entity.driverPreset
+    }
     if (entity.kind === 'car' && entity.race === undefined) {
       const { movementStyle, ...race } = RACE_DEFAULTS.car
       entity.race = { ...race, maxSpeed: entity.maxSpeed ?? race.maxSpeed }

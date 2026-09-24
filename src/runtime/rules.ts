@@ -72,20 +72,20 @@ export function matchingRule(rules: Rule[], source: Entity, target: Entity): Rul
 }
 
 export function isSolidBody(entity: Entity): boolean {
-  // Finish is a trigger; finished cars ghost so others can still cross the line.
+  // Finish is a trigger; finished participants ghost so others can still cross.
   // Trees / road / start are decorative. Broken wrecks stay solid.
   if (entity.state === 'Finished') return false
-  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) || entity.kind === 'wall' || entity.kind === 'obstacle'
+  return isRaceParticipant(entity) || entity.kind === 'wall' || entity.kind === 'obstacle'
 }
 
 /** Self-propelled bodies that carry arcade velocity. */
 export function isMovableBody(entity: Entity): boolean {
-  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) && entity.state !== 'Broken' && entity.state !== 'Finished'
+  return isRaceParticipant(entity) && entity.state !== 'Broken' && entity.state !== 'Finished'
 }
 
 /** Bodies that can be nudged by separation (includes wrecks). */
 export function isShovableBody(entity: Entity): boolean {
-  return (['car', 'horse', 'human', 'sheep'].includes(entity.kind) || isRaceParticipant(entity)) && entity.state !== 'Finished'
+  return isRaceParticipant(entity) && entity.state !== 'Finished'
 }
 
 /** Closing speed along contact normal (positive = approaching). */

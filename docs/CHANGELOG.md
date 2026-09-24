@@ -2,6 +2,13 @@
 
 ## 2026-09-24
 
+### Unified Race collision and identity correction
+
+- Enlarged Horse, Human and Sheep SAT bodies to contain their complete vector silhouettes, preventing visible body overlap while keeping rendering separate from physics.
+- Added all 16 directed species-pair live-overlap separation checks; the full suite now contains 233 tests.
+- Driver identity is now car-only. Human is the participant; Horse and Sheep race independently in phase one. Animal/Human flows skip the driver step, display a coherent five-step progress indicator, and migrate away accidental legacy `driverPreset` fields.
+- Review now states that entity collision is enabled. Horse + Rider remains a later explicit composition model; no entity can ride a Human or Sheep.
+
 ### Unified Race phase one implemented
 
 - Generalized the existing `WorldRuntime` from car-only filtering to `RaceCapability` participants. Car, Horse, Human and Sheep now share countdown, player controls, waypoint AI, camera, collision, finish, ranking and restart.

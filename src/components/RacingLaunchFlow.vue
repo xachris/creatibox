@@ -38,6 +38,8 @@ const stepTitle = computed(() => [
   '选择驾驶感觉',
   '准备开赛',
 ][step.value - 1])
+const visibleSteps = computed(() => draft.playerKind === 'car' ? [1, 2, 3, 4, 5, 6] : [1, 3, 4, 5, 6])
+const visibleStepNumber = computed(() => visibleSteps.value.indexOf(step.value) + 1)
 
 const driverNames = {
   'driver-a': 'Alex',
@@ -52,12 +54,12 @@ function choose(action: () => void) {
 
 function next() {
   raceAudio.playUi('step')
-  step.value = Math.min(6, step.value + 1)
+  step.value = Math.min(6, step.value === 1 && draft.playerKind !== 'car' ? 3 : step.value + 1)
 }
 
 function previous() {
   raceAudio.playUi('step')
-  step.value = Math.max(1, step.value - 1)
+  step.value = Math.max(1, step.value === 3 && draft.playerKind !== 'car' ? 1 : step.value - 1)
 }
 
 function cancel() {
@@ -77,13 +79,13 @@ function startRace() {
       <button class="ghost-button" @click="cancel">← 返回目录</button>
       <div class="launch-progress-copy">
         <strong>Unified Race · 混合竞速</strong>
-        <span>步骤 {{ step }} / 6</span>
+        <span>步骤 {{ visibleStepNumber }} / {{ visibleSteps.length }}</span>
       </div>
       <span />
     </header>
 
     <div class="launch-progress">
-      <span v-for="n in 6" :key="n" :class="{ active: n <= step }" />
+      <span v-for="n in visibleSteps" :key="n" :class="{ active: n <= step }" />
     </div>
 
     <main class="launch-content">
@@ -118,7 +120,7 @@ function startRace() {
         </div>
       </section>
 
-      <section v-else-if="step === 2" class="launch-step">
+      <section v-else-if="step === 2 && draft.playerKind === 'car'" class="launch-step">
         <div class="driver-grid">
           <button
             v-for="(name, key) in driverNames"
@@ -206,13 +208,14 @@ function startRace() {
         <div class="review-hero">
           <span>READY</span>
           <h2>{{ draft.playerKind?.toUpperCase() }}<template v-if="draft.playerKind === 'car'"> · {{ draft.carShape.toUpperCase() }} · {{ draft.color.toUpperCase() }}</template></h2>
-          <p>{{ driverNames[draft.driver] }} · {{ draft.track }} · {{ draft.length }} km</p>
+        <p>{{ draft.playerKind === 'car' ? `${driverNames[draft.driver]} 驾驶` : '独立参赛' }} · {{ draft.track }} · {{ draft.length }} km</p>
         </div>
         <div class="review-grid">
           <div><span>对手</span><strong>{{ draft.opponentKinds!.slice(0, draft.opponents).join(' / ') || '无' }}</strong></div>
           <div><span>难度</span><strong>{{ draft.difficulty }}</strong></div>
           <div><span>动效</span><strong>{{ draft.motion }}</strong></div>
           <div><span>声音</span><strong>{{ draft.playerKind === 'car' ? draft.sound : draft.playerKind === 'human' ? 'footstep' : 'hoofbeat' }}</strong></div>
+          <div><span>碰撞</span><strong>实体碰撞已开启</strong></div>
         </div>
         <div class="control-preview">
           <strong>默认控制</strong>

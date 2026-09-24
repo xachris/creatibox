@@ -30,3 +30,18 @@ it('round trips mixed capabilities, controls, appearance and audio through impor
   expect(imported).toEqual(p)
   expect(normalizeProject(imported)).toEqual(p)
 })
+
+it('only assigns a driver identity to cars', async () => {
+  const { createRaceProject } = await import('./raceGenerator')
+  const base = { track:'straight', length:1, carShape:'classic', color:'red', motion:'clean', sound:'light', opponents:0, difficulty:'normal', driver:'driver-b' } as const
+  const car = createRaceProject({ ...base, playerKind:'car' }).world.entities[0]
+  const human = createRaceProject({ ...base, playerKind:'human' }).world.entities[0]
+  const horse = createRaceProject({ ...base, playerKind:'horse' }).world.entities[0]
+  const sheep = createRaceProject({ ...base, playerKind:'sheep' }).world.entities[0]
+  expect(car.driverPreset).toBe('driver-b')
+  expect(human.driverPreset).toBeUndefined()
+  expect(horse.driverPreset).toBeUndefined()
+  expect(sheep.driverPreset).toBeUndefined()
+  human.driverPreset = 'driver-a'
+  expect(normalizeProject(createRaceProject({ ...base, playerKind:'human', driver:'driver-a' })).world.entities[0].driverPreset).toBeUndefined()
+})

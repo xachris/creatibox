@@ -100,6 +100,13 @@ V0.1 **不做**：账号、班级、教师后台、云同步、AI、网络多人
 
 ## 4. 会话记录
 
+### 2026-09-24 — 碰撞体与参赛身份修正
+
+- 修正 Horse / Human / Sheep 视觉轮廓大于 SAT 碰撞体造成的视觉重叠；增加全部 16 个有向物种配对的实时分离回归。
+- Driver 只属于 Car。Human 自身参赛，Horse / Sheep 第一阶段独立参赛；非 Car 创建流程跳过车手步骤并清理旧的误写 `driverPreset`。
+- Review 明示实体碰撞开启；Horse + Rider 仍留在后续组合模型，不允许 Human 骑 Human 或 Sheep。
+- 验证：typecheck、233 tests、production build，并在浏览器检查动物流程跳过车手、碰撞提示和实体分离。
+
 ### 2026-09-24 — Unified Race 第一阶段
 
 - 会话目标：按 `docs/18` 将现有赛车运行时泛化为 Car / Horse / Human / Sheep 混合竞速，并部署原 Railway 服务。

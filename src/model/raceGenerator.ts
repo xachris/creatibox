@@ -105,7 +105,9 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
     maxSpeed: RACE_DEFAULTS[playerKind].maxSpeed,
   }, start.x, start.y)
   player.rotation = heading
-  player.driverPreset = options.driver ?? 'driver-a'
+  // A driver belongs to a car. Human is already the participant, and first-
+  // phase Horse / Sheep race independently (Horse + Rider is a later model).
+  player.driverPreset = playerKind === 'car' ? options.driver ?? 'driver-a' : undefined
   entities.push(player)
 
   let back = 0
@@ -113,8 +115,9 @@ export function createRaceProject(options: RacePresetOptions): CreatiBoxProject 
   for (let i = 0; i < options.opponents; i++) {
     const kind = options.opponentKinds?.[i] ?? 'car'
     const profileSpeed = options.difficulty === 'easy' ? 190 : options.difficulty === 'fast' ? 280 : 235
-    // Stagger far enough (cars are ~72×42) so the grid never starts overlapping.
-    back += previousLength / 2 + (kind === 'car' ? 72 : kind === 'horse' ? 66 : kind === 'human' ? 32 : 44) / 2 + 24
+    // Use the actual collision body dimensions for a non-overlapping mixed grid.
+    const nextLength = kind === 'car' ? 72 : kind === 'horse' ? 92 : kind === 'human' ? 54 : 62
+    back += previousLength / 2 + nextLength / 2 + 28
     const side = (i % 2 === 0 ? 1 : -1) * (52 + Math.floor(i / 2) * 8)
     const opponent = createParticipant(kind, {
       name: `CPU ${i + 1}`,

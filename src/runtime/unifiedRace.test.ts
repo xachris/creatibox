@@ -65,3 +65,18 @@ for(const count of [0,1,2,3] as const) it(`grid ${count} CPU`,()=>{
  const run=new WorldRuntime(project('horse',RACE_SPECIES.slice(0,count)))
  for(const a of run.participants)for(const b of run.participants)if(a!==b)expect(intersects(a,b)).toBe(false)
 })
+
+for (const playerKind of RACE_SPECIES) for (const cpuKind of RACE_SPECIES) {
+  it(`separates overlapping live bodies ${playerKind}/${cpuKind}`, () => {
+    const run = new WorldRuntime(project(playerKind, [cpuKind]))
+    const [player, cpu] = run.participants
+    player.position = { x: 500, y: 500 }
+    cpu.position = { x: 500, y: 500 }
+    player.speed = 0
+    cpu.speed = 0
+    run.phase = 'racing'
+    run.countdown = 0
+    run.step(1 / 60, new Set())
+    expect(intersects(player, cpu)).toBe(false)
+  })
+}
