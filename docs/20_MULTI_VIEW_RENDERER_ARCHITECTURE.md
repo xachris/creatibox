@@ -2,7 +2,7 @@
 
 ## 1. 文档目的与状态
 
-为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0–4 已完成，包括 Top-Down adapter、Oblique MVP / polish 和不中断 Runtime 的运行中切换；First-Person 尚未实现。
+为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0–5 已完成，包括 Top-Down adapter、Oblique MVP / polish、不中断 Runtime 的运行中切换和 First-Person 架构 spike；First-Person 产品视图尚未实现。
 
 设计基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`（2026-09-24）。当前四类竞速实体已经共用 WorldRuntime；本文不是再次实施 Unified Race，也不把视图能力标为已完成。[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)定义 Phase 0–6 的顺序与验收门禁。
 
@@ -201,7 +201,7 @@ Phase 2 支持 Car / Horse / Human / Sheep、tree / road / obstacle / start / fi
 
 建议映射 `world (x,y) → 3D (X=x, Y=视觉高度, Z=y)`，按模型 forward axis 明确 rotation 映射并做四个方向校验。Phase 6 玩家相机只读取 participant 位置、heading 和显示眼高；道路/地面与实体使用 Billboard/低模。3D mesh 不成为物理权威；碰撞仍由 2D Runtime 的 footprint 决定。
 
-spike 必须交付对比文档、最小可重复原型、设备/帧率/包体/资源清理证据与 Go / No-Go。若结果需要重写 Runtime、加入垂直物理或不能保持比赛一致，则 No-Go，继续 Top-Down / Oblique。Phase 6 不自动开始，也不承诺发布日期。
+spike 已交付[对比报告与最小原型](22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)：通用 grid raycast No-Go，Three.js Conditional Go，Babylon.js 为文档级备选。若后续集成需要重写 Runtime、加入垂直物理或不能保持比赛一致，则撤销 Go，继续 Top-Down / Oblique。Phase 6 不自动开始，也不承诺发布日期。
 
 官方技术参考（2026-09-24 查阅，具体 API 在实施时按锁定版本复核）：
 

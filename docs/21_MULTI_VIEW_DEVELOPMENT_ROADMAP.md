@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-Phase 0–4 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换并保存偏好；编辑仍固定 Top-Down，First-Person 未实现。Phase 5–6 尚未启动。
+Phase 0–5 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换并保存偏好；编辑仍固定 Top-Down。First-Person 架构 spike 已给出 Three.js Conditional Go，但产品化 First-Person 未实现，Phase 6 不自动开始。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -19,7 +19,7 @@ Phase 0–4 已完成。运行模式可在 Top-Down 与 Oblique 间连续切换�
 | 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 2026-09-24 已完成 |
 | 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 2026-09-24 已完成 |
 | 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 2026-09-24 已完成 |
-| 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 未启动，不承诺产品化 |
+| 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 2026-09-25 已完成；Three.js Conditional Go |
 | 6 First-Person MVP | Go 后再估算，暂留 5–10 开发日 | Phase 5 Go + 独立排期确认 | 复用 2D Runtime 的第一人称运行视图 | 条件阶段 |
 
 估计按一位熟悉现有代码的开发者计算，包括本阶段检查；不包含高质量资产采购/制作、课堂验证和等待评审时间。Phase 1–4 约 10–16 开发日，仅供规划。没有承诺上线日期；任一代码阶段的上线/部署另行安排，不继承旧 Unified Race 文档的自动部署要求。
@@ -177,6 +177,15 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 报告需列出测试设备、原型 commit、运行方式、实际测量、限制、候选淘汰理由与建议。未通过则 No-Go 或收缩实验范围，**不自动进入 Phase 6**。通过后仍须确认独立产品范围与排期，选择 renderer 才锁定依赖与资产预算。
 
+### 完成记录（2026-09-25）
+
+- 新增 [22 First-Person Architecture Spike](22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)，完成 grid raycast、Three.js 与 Babylon.js 比较。通用 raycast No-Go；Three.js Conditional Go；Babylon.js 保留文档级备选。
+- 受限 DDA corridor 原型证明网格走廊可行，也确认自由坐标、旋转宽道路和通用实体不适合被迫栅格化。
+- 开发隐藏入口 `?experiment=first-person` 运行 Three.js 低模 Race World；同一 WorldRuntime 提供 Entity、控制、AI、碰撞、waypoint、finish 和 ranking，Three 只读映射和显示。
+- 900 fixed ticks 自动对照证明逐 tick 读取 3D transform/camera 不改变 Runtime project、elapsed 或 finishOrder。浏览器 1280×720 / DPR 2 实测 120 fps、17–19 draw calls、无 warning/error；退出后实验 canvas 从 1 回到 0。
+- Three.js 异步实验 chunk 524.10 kB / gzip 131.62 kB，构建明确产生大 chunk warning；该成本和低端设备性能进入 Phase 6 门禁，不宣称已达产品预算。
+- 250 项测试、typecheck 与 production build 通过。实验不进入首页或正式视图切换，不写 view 偏好，不部署。
+
 ---
 
 ## 9. Phase 6 — First-Person MVP（条件阶段）
@@ -232,4 +241,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-下一轮若继续开发，从 Phase 5 First-Person architecture spike 开始，只做限时技术验证、候选比较与最小原型，并在证据满足前保持 No-Go；不自动进入 Phase 6。进度以证据更新，新增计划不等于已有代码能力。
+Phase 5 已完成 Conditional Go，但 Phase 6 不自动开始。下一轮只有在继续指令明确接受条件阶段后，才依据 [22 Spike 报告](22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)把 Three renderer 接入稳定运行宿主；任何门禁失败都回到 Top-Down / Oblique，不修改默认编辑视图。

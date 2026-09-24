@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { createProjectViewPreferences, isRaceParticipant } from './model/race'
 import { cloneData } from './model/clone'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import WorldCanvas from './components/WorldCanvas.vue'
 import CarWizard, { type CarWizardResult } from './components/CarWizard.vue'
 import CreationModePicker from './components/CreationModePicker.vue'
@@ -15,6 +15,10 @@ import { exportProject, importProject, loadAutosave, saveAutosave } from './stor
 import { raceAudio } from './media/sound/audioDirector'
 
 type Snapshot = CreatiBoxProject
+
+const FirstPersonSpike = defineAsyncComponent(() => import('./experiments/firstPerson/FirstPersonSpike.vue'))
+const firstPersonSpikeEnabled = import.meta.env.DEV
+  && new URLSearchParams(window.location.search).get('experiment') === 'first-person'
 
 const project = ref<CreatiBoxProject>(createStarterProject())
 const selectedId = ref<string | null>(null)
@@ -242,10 +246,11 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique') {
 </script>
 
 <template>
-  <input ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
+  <FirstPersonSpike v-if="firstPersonSpikeEnabled" />
+  <input v-if="!firstPersonSpikeEnabled" ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
 
   <HomeCatalog
-    v-if="screen === 'home'"
+    v-if="!firstPersonSpikeEnabled && screen === 'home'"
     :has-recent-project="hasRecentProject"
     @racing="screen = 'launch'"
     @continue="continueProject"
@@ -258,7 +263,7 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique') {
     @start="startRacingGame"
   />
 
-  <main v-else class="app-shell" :class="{ playing: mode === 'run' }">
+  <main v-else-if="!firstPersonSpikeEnabled" class="app-shell" :class="{ playing: mode === 'run' }">
     <RaceComposer
       v-if="showRaceComposer"
       @close="showRaceComposer = false"

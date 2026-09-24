@@ -49,6 +49,7 @@ Entity → State → Action → Interaction → Transition
 - [Unified Race 工程实施规范](docs/19_UNIFIED_RACE_IMPLEMENTATION_SPEC.md)
 - [多视角 / 多渲染器架构设计](docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)（Phase 4 双视图连续切换已完成）
 - [多视角开发进度与验收计划](docs/21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)（Phase 0–6）
+- [First-Person 架构 Spike](docs/22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)（Three.js Conditional Go；未产品化）
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验

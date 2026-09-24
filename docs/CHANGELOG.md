@@ -1,5 +1,16 @@
 # CreatiBox Changelog
 
+## 2026-09-25
+
+### First-Person architecture spike
+
+- Added a restricted DDA grid-raycast experiment and documented why it is No-Go as the general renderer for freely positioned, rotated CreatiBox worlds.
+- Added a development-only, dynamically loaded Three.js prototype at `?experiment=first-person`. It maps the existing 2D Race World into low-poly 3D while the same WorldRuntime remains authoritative for input, AI, collision, waypoints, finish and ranking.
+- Chose Three.js as Conditional Go for a future Phase 6; Babylon.js remains a documented alternative. The experiment is hidden from product navigation and preferences.
+- Browser evidence at 1280×720 / DPR 2: 120 fps, 17–19 draw calls, one canvas while active, zero experiment canvases after exit, and no console warning/error.
+- Build evidence: the lazy experiment chunk is 524.10 kB / gzip 131.62 kB and triggers Vite's large-chunk warning. This dependency and device cost remains a Phase 6 gate.
+- Validation: typecheck, production build and 250 tests pass, including a 900-tick identical Runtime trace while sampling Three transforms. No deployment.
+
 ## 2026-09-24
 
 ### Multi-View Phase 4 continuous view switching

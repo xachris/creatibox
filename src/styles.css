@@ -743,6 +743,27 @@ button:disabled { opacity: .45; cursor: default; }
 /* Play view prioritizes the race; the same authoring world remains editable. */
 .playing .library, .playing .properties, .playing .topbar, .playing .statusbar { display: none; }
 .playing .workspace { grid-template-columns: minmax(0, 1fr); }
+
+.fp-spike { position: fixed; inset: 0; overflow: hidden; background: #0f172a; }
+.fp-spike-canvas { width: 100%; height: 100%; }
+.fp-spike-canvas canvas { display: block; width: 100%; height: 100%; }
+.fp-spike-hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .86);
+  color: #e2e8f0;
+  font-size: 12px;
+}
+.fp-spike-hud strong { color: #fbbf24; }
+.fp-spike-hud button { margin-top: 4px; background: #fff; color: #172033; }
 .race-stage { position: relative; flex: 1; min-height: 0; display: flex; overflow: hidden; }
 .race-stage .world-canvas { outline: none; width: 100%; }
 .world-canvas canvas { display: block; }
