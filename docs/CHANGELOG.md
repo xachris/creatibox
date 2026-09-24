@@ -2,6 +2,14 @@
 
 ## 2026-09-24
 
+### Multi-View Phase 1 renderer abstraction
+
+- Added display-only `ViewState`, `CameraController`, `IWorldRenderer` and a `TopDownRenderer` adapter while preserving the existing PixiJS top-down output and camera formula.
+- Kept one authoritative `WorldRuntime` in `WorldCanvas`; renderer operations cannot initialize or advance simulation, own input/audio/HUD, or write Entity coordinates.
+- Routed camera follow, camera reset and screen-to-world edit coordinates through the renderer boundary. Edit and Run keep separate Top-Down defaults; no view-switching UI or Oblique / First-Person renderer exists yet.
+- Validation: typecheck, production build and 236 tests pass (233 existing regressions plus 3 renderer/camera boundary tests). Local browser QA covered launch, countdown, CPU progress, HUD, restart reset and return to Edit with no console errors.
+- Phase 1 only; no project-file view persistence, dependency/version change or deployment.
+
 ### Multi-View / Multi-Renderer architecture and roadmap
 
 - 设计阶段，仅文档，无代码实现。Added `docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md` and `docs/21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md`; linked both from README.

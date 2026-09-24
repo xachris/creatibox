@@ -2,7 +2,7 @@
 
 ## 1. 文档目的与状态
 
-为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。**设计阶段，仅文档，无代码实现。** 本轮不修改 runtime、UI、renderer、依赖或部署配置，不部署。
+为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档与 Phase 1 Top-Down renderer abstraction 已完成；Oblique、运行中视图切换与 First-Person 尚未实现。
 
 设计基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`（2026-09-24）。当前四类竞速实体已经共用 WorldRuntime；本文不是再次实施 Unified Race，也不把视图能力标为已完成。[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)定义 Phase 0–6 的顺序与验收门禁。
 
@@ -45,7 +45,7 @@ AuthoringState（World / Entity / Rule）
 
 ### 与现有实现的衔接
 
-当前 `src/components/WorldCanvas.vue` 同时连接 Pixi ticker、`runtime.step`、镜头、HUD 与音频，并在 `initializeRuntime()` 中重建比赛。Phase 1 先提取适配边界，保留现有模拟时间步与输入语义；渲染器切换绝不能调用该初始化路径。
+`src/components/WorldCanvas.vue` 继续连接 Pixi ticker、`runtime.step`、HUD 与音频，并在 `initializeRuntime()` 中重建比赛。Phase 1 已把 world layer、Top-Down 投影/逆投影、相机与显示清理抽入 renderer 适配边界，保留现有模拟时间步与输入语义；未来渲染器切换绝不能调用该初始化路径。
 
 建议由稳定的运行宿主负责唯一模拟调度、Runtime 引用、输入和音频生命周期；renderer 自身不得启动第二个模拟 ticker。可逐步搬移显示职责，不重写 WorldRuntime。
 
@@ -53,7 +53,7 @@ AuthoringState（World / Entity / Rule）
 
 ## 4. Renderer / Camera 接口契约（设计草案）
 
-以下是后续接口约束，不是已存在的 API，也不要求本轮增加 TypeScript 文件：
+Phase 1 已落地 `IWorldRenderer`、`TopDownRenderer`、`CameraController` 与 `ViewState` 的最小接口；下表仍是后续扩展必须保持的完整契约：
 
 | 接口 | 责任 | 禁止行为 |
 | --- | --- | --- |
@@ -235,11 +235,11 @@ Phase 1 记录实际测试机器、OS、浏览器版本和 Top-Down 基线；Pha
 
 ## 11. 禁止项、测试与本轮 Done Definition
 
-本阶段禁止：3D physics、把 z 轴变成新物理维度、重写 WorldRuntime、复制实体或物种专用 Runtime、renderer 内的 AI/碰撞/finish/ranking、自由相机编辑器、VR、自由垂直运动/跳跃/复杂地形，以及本轮任何代码实现与部署。
+全阶段禁止：3D physics、把 z 轴变成新物理维度、重写 WorldRuntime、复制实体或物种专用 Runtime、renderer 内的 AI/碰撞/finish/ranking、自由相机编辑器、VR、自由垂直运动/跳跃/复杂地形。
 
 后续必须验证同一 world/seed、相同逐 tick 输入与 dt 下，Top-Down / Oblique / 无 renderer 的 Runtime 结果一致；相机和显示随机数不能影响模拟。切换不重置 elapsed / waypoints / finishOrder，AuthoringState 和 undo 栈不受影响，旧项目默认 Top-Down。详细矩阵见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
-**本轮 Done Definition：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，返回 commit hash 和文件清单。不开发代码、不安装新 renderer、不部署，不把未来测试写成已通过。
+**Phase 0 Done Definition（已完成）：** 两份设计文档完整，README 索引和 CHANGELOG 更新，编号连续、内部链接有效、全部 diff 只有 Markdown；提交 main，不开发代码、不部署，不把未来测试写成已通过。Phase 1 完成证据见[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)。
 
 ## 12. 与既有规范的关系
 

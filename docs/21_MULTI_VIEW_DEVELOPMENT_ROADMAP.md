@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-**设计阶段，仅文档，无代码实现。** 本轮只完成 Phase 0；Phase 1–6 均未启动。本计划不授权本轮修改 runtime、UI、renderer、依赖、部署配置或执行部署。
+Phase 0 文档与 Phase 1 Renderer abstraction 已完成。Phase 2–6 尚未启动；当前产品仍只有 Top-Down 视图，没有 Oblique 或 First-Person 实现。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -14,8 +14,8 @@
 
 | Phase | 工作量初估 | 依赖 | 里程碑 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| 0 文档 / 架构冻结 | 本轮 | 读取现有规范与 main | 两份规范、索引、变更记录、文档提交 | 本轮交付 |
-| 1 Renderer abstraction | 2–3 开发日 | Phase 0 | Top-Down 经适配层运行且无行为变化 | 未启动 |
+| 0 文档 / 架构冻结 | 已完成 | 读取现有规范与 main | 两份规范、索引、变更记录、文档提交 | 2026-09-24 已完成 |
+| 1 Renderer abstraction | 2–3 开发日 | Phase 0 | Top-Down 经适配层运行且无行为变化 | 2026-09-24 已完成 |
 | 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 未启动 |
 | 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 未启动 |
 | 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 未启动 |
@@ -56,6 +56,14 @@
 - 相同输入与 dt 的 Runtime trace 与改造前一致；Top-Down 布局、拖拽、控制、跟随、结束、重赛、音效无回归。
 - 运行宿主只创建一次 Runtime；renderer dispose 不销毁业务世界，不叠加 ticker 或音轨。
 - 产出接口契约、回归截图/记录、已知差异清单。出现非预期行为差异时不得进入 Phase 2。
+
+### 完成记录（2026-09-24）
+
+- 新增 `ViewState`、`CameraController`、`IWorldRenderer` 与 `TopDownRenderer`。TopDown renderer 接管 Pixi world layer、显示清理、world/screen 投影、相机更新与资源释放。
+- `WorldCanvas` 继续唯一持有 WorldRuntime、ticker、输入、HUD 与 AudioDirector；renderer 不创建或推进 Runtime。进入 Run / Restart 仍走既有初始化，单纯绘制和相机更新不触发初始化。
+- 编辑与运行使用独立的默认 ViewState；当前均固定为 Top-Down。编辑拖拽坐标改为通过 renderer 的 inverse projection，结果与原先减去 world layer 平移相同。
+- `npm run typecheck`、236 项测试和 `npm run build` 通过；236 项包括原 233 项回归与 3 项 renderer/camera 边界测试。
+- 本地浏览器从首页完成默认混合比赛启动、倒计时、CPU 推进、HUD、重新比赛清零与返回编辑；无浏览器控制台错误。未改变 UI，未实现视图切换，未部署。
 
 ---
 
@@ -196,4 +204,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-下一轮若启动开发，只从 Phase 1 的 Top-Down 适配层和基线回归开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)逐项验收；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。
+下一轮若继续开发，从 Phase 2 Oblique MVP 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)复用 Phase 1 边界并逐项验收；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。

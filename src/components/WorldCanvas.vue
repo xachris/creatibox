@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Application, Container, FederatedPointerEvent, Graphics } from 'pixi.js'
+import { Application, FederatedPointerEvent, Graphics } from 'pixi.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { CreatiBoxProject, Entity, Vec2 } from '../model/types'
 import { drawLivingParticipant } from '../render/participant'
 import { WorldRuntime, raceStandings } from '../runtime/worldRuntime'
 import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 import { raceAudio } from '../media/sound/audioDirector'
+import { TopDownRenderer, type IWorldRenderer } from '../render/worldRenderer'
+import { createRunViewState, DEFAULT_EDIT_VIEW_STATE, type ViewState } from '../render/viewState'
 
 const props = defineProps<{
   project: CreatiBoxProject
@@ -22,7 +24,8 @@ const emit = defineEmits<{
 
 const host = ref<HTMLDivElement | null>(null)
 let app: Application | null = null
-let worldLayer: Container | null = null
+let renderer: IWorldRenderer | null = null
+let viewState: ViewState = { ...DEFAULT_EDIT_VIEW_STATE }
 let runtimeProject: CreatiBoxProject | null = null
 let runtime: WorldRuntime | null = null
 let disposed = false
@@ -50,6 +53,7 @@ function activeEntities(): Entity[] {
 }
 
 function drawTrack(path: Vec2[]) {
+  const worldLayer = renderer?.worldLayer
   if (!worldLayer || path.length < 2) return
   const road = new Graphics()
   road.moveTo(path[0].x, path[0].y)
@@ -65,6 +69,7 @@ function drawTrack(path: Vec2[]) {
 }
 
 function drawEntity(entity: Entity) {
+  const worldLayer = renderer?.worldLayer
   if (!worldLayer) return
   const graphic = new Graphics()
   const selected = props.mode === 'edit' && entity.id === props.selectedId
@@ -149,8 +154,9 @@ function drawEntity(entity: Entity) {
     if (props.mode !== 'edit') return
     event.stopPropagation()
     emit('select', entity.id)
-    const worldX = event.global.x - (worldLayer?.position.x ?? 0)
-    const worldY = event.global.y - (worldLayer?.position.y ?? 0)
+    const world = renderer?.unproject(event.global) ?? event.global
+    const worldX = world.x
+    const worldY = world.y
     dragging = {
       id: entity.id,
       offsetX: worldX - entity.position.x,
@@ -162,27 +168,24 @@ function drawEntity(entity: Entity) {
 }
 
 function render() {
-  if (!app || !worldLayer) return
-  worldLayer.removeChildren().forEach((child) => child.destroy())
+  if (!app || !renderer) return
   const project = activeProject()
   const bounds = project.world.worldBounds ?? { width: app.screen.width, height: app.screen.height }
 
-  const ground = new Graphics()
-  ground.rect(0, 0, bounds.width, bounds.height).fill(0xdbe7cf)
-  worldLayer.addChild(ground)
+  renderer.render(worldLayer => {
+    const ground = new Graphics()
+    ground.rect(0, 0, bounds.width, bounds.height).fill(0xdbe7cf)
+    worldLayer.addChild(ground)
 
-  if (project.world.trackPath?.length) drawTrack(project.world.trackPath)
-  for (const entity of activeEntities()) {
-    if (entity.kind !== 'road') drawEntity(entity)
-  }
+    if (project.world.trackPath?.length) drawTrack(project.world.trackPath)
+    for (const entity of activeEntities()) {
+      if (entity.kind !== 'road') drawEntity(entity)
+    }
+  })
 }
 
 function followPlayer(player: Entity) {
-  if (!app || !worldLayer) return
-  worldLayer.position.set(
-    app.screen.width / 2 - player.position.x,
-    app.screen.height / 2 - player.position.y,
-  )
+  renderer?.updateCamera(viewState, player.position)
 }
 
 function syncHud() {
@@ -245,13 +248,14 @@ function initializeRuntime() {
   error.value = ''
   result.value = ''
   racers.value = []
-  if (!app || !worldLayer) return
+  if (!app || !renderer) return
   elapsed.value = 0
   countdown.value = 3
   controlHint.value = ''
   try {
     runtime = new WorldRuntime(props.project)
     runtimeProject = runtime.project
+    viewState = createRunViewState(runtime.player.id)
     previousPhase = null
     raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id, runtime.player.movementStyle)
     muted.value = raceAudio.isMuted()
@@ -290,8 +294,7 @@ onMounted(async () => {
     if (disposed || !host.value) { instance.destroy(true, { children: true }); return }
     host.value.appendChild(app.canvas)
 
-    worldLayer = new Container()
-    app.stage.addChild(worldLayer)
+    renderer = new TopDownRenderer(app)
     app.stage.eventMode = 'static'
     app.stage.hitArea = app.screen
 
@@ -301,8 +304,9 @@ onMounted(async () => {
     })
     app.stage.on('pointermove', (event: FederatedPointerEvent) => {
       if (!dragging || props.mode !== 'edit') return
-      const worldX = event.global.x - (worldLayer?.position.x ?? 0)
-      const worldY = event.global.y - (worldLayer?.position.y ?? 0)
+      const world = renderer?.unproject(event.global) ?? event.global
+      const worldX = world.x
+      const worldY = world.y
       emit('move', dragging.id, worldX - dragging.offsetX, worldY - dragging.offsetY)
     })
     app.stage.on('pointerup', () => { dragging = null })
@@ -348,7 +352,8 @@ watch(() => props.mode, (mode) => {
     runtime = null
     runtimeProject = null
     error.value = ''
-    worldLayer?.position.set(0, 0)
+    viewState = { ...DEFAULT_EDIT_VIEW_STATE }
+    renderer?.resetCamera()
     render()
   }
 })
@@ -367,9 +372,10 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', clearKeys)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
-  if (worldLayer) app?.destroy(true, { children: true })
+  renderer?.dispose()
+  if (renderer) app?.destroy(true, { children: true })
   app = null
-  worldLayer = null
+  renderer = null
 })
 </script>
 

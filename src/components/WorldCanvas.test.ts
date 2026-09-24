@@ -21,8 +21,12 @@ vi.mock('howler', () => {
 vi.mock('pixi.js', () => {
   class Container {
     position = { x: 0, y: 0, set: (x: number, y: number) => { this.position.x = x; this.position.y = y; if (this.constructor === Container) pixi.camera = { x, y } } }
+    scale = { x: 1, y: 1, set: (value: number) => { this.scale.x = value; this.scale.y = value } }
+    rotation = 0
     addChild() {}
     removeChildren() { return [] }
+    removeFromParent() {}
+    destroy() {}
     on() {}
   }
   class Graphics extends Container {
