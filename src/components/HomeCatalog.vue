@@ -53,8 +53,8 @@ function openImport() {
           </div>
           <div class="catalog-copy">
             <span class="catalog-status">AVAILABLE</span>
-            <strong>赛车游戏</strong>
-            <p>选一辆车、一个车手、一条赛道，然后直接开赛。</p>
+            <strong>Unified Race · 混合竞速</strong>
+            <p>选择 Car、Horse、Human 或 Sheep，和混合对手直接开赛。</p>
             <span class="catalog-cta">开始创建 →</span>
           </div>
         </button>
