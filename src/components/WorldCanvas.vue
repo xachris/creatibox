@@ -218,8 +218,9 @@ function render() {
     if (host.value) {
       host.value.dataset.drawCalls = String(stats.drawCalls)
       host.value.dataset.triangles = String(stats.triangles)
-      host.value.dataset.visibleEntities = String(project.world.entities.length)
+      host.value.dataset.visibleEntities = String(stats.visibleEntities)
       host.value.dataset.totalEntities = String(project.world.entities.length)
+      host.value.dataset.qualityTier = stats.qualityTier
     }
     return
   }

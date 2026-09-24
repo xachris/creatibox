@@ -50,6 +50,7 @@ Entity → State → Action → Interaction → Transition
 - [多视角 / 多渲染器架构设计](docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)（Phase 6 三视图运行切换已完成）
 - [多视角开发进度与验收计划](docs/21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)（Phase 0–6）
 - [First-Person 架构 Spike](docs/22_FIRST_PERSON_ARCHITECTURE_SPIKE.md)（Three.js 路线验证与 Phase 6 边界）
+- [First-Person 视觉与性能优化](docs/23_FIRST_PERSON_VISUAL_PERFORMANCE_POLISH.md)（Phase 7 低模资产与显示预算）
 - [变更记录](docs/CHANGELOG.md)
 
 ## 在线体验

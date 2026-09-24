@@ -1,11 +1,10 @@
 import * as THREE from 'three'
 import type { CreatiBoxProject, Entity } from '../model/types'
-import { firstPersonCameraFrame, toThreeTransform } from '../experiments/firstPerson/threeMapping'
+import { firstPersonCameraFrame } from '../experiments/firstPerson/threeMapping'
+import { chooseFirstPersonQuality, isWithinFirstPersonRange } from './firstPersonPresentation'
 
-export interface FirstPersonStats {
-  drawCalls: number
-  triangles: number
-}
+export interface FirstPersonStats { drawCalls: number; triangles: number; visibleEntities: number; qualityTier: 'low' | 'standard' }
+type DeviceNavigator = Navigator & { deviceMemory?: number }
 
 /** Display-only Three.js adapter. WorldRuntime remains the only simulation owner. */
 export class FirstPersonRenderer {
@@ -13,114 +12,112 @@ export class FirstPersonRenderer {
   private readonly renderer: THREE.WebGLRenderer
   private readonly scene = new THREE.Scene()
   private readonly camera: THREE.PerspectiveCamera
-  private readonly meshes = new Map<string, THREE.Mesh>()
+  private readonly models = new Map<string, THREE.Group>()
   private readonly resizeObserver: ResizeObserver
+  private readonly quality
   private disposed = false
 
   constructor(private readonly host: HTMLElement, project: Readonly<CreatiBoxProject>) {
     if (!globalThis.WebGLRenderingContext) throw new Error('当前浏览器不支持 WebGL。')
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const device = navigator as DeviceNavigator
+    this.quality = chooseFirstPersonQuality(window.devicePixelRatio, device.hardwareConcurrency, device.deviceMemory ?? 8)
+    this.renderer = new THREE.WebGLRenderer({ antialias: this.quality.tier === 'standard', powerPreference: 'high-performance' })
+    this.renderer.setPixelRatio(this.quality.pixelRatio)
     this.renderer.setClearColor(0xbfd6ed)
     this.renderer.domElement.className = 'first-person-canvas'
     this.renderer.domElement.dataset.renderer = 'first-person'
+    this.renderer.domElement.dataset.qualityTier = this.quality.tier
     this.host.appendChild(this.renderer.domElement)
-
-    this.scene.fog = new THREE.Fog(0xbfd6ed, 250, 1400)
-    this.camera = new THREE.PerspectiveCamera(70, 1, 0.5, 2200)
+    this.scene.fog = new THREE.Fog(0xbfd6ed, 250, this.quality.farDistance)
+    this.camera = new THREE.PerspectiveCamera(70, 1, 0.5, this.quality.farDistance + 200)
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x405c34, 2.2))
     const sun = new THREE.DirectionalLight(0xffffff, 2.4)
     sun.position.set(200, 500, 100)
     this.scene.add(sun)
     this.buildStaticWorld(project)
-    this.buildEntities(project.world.entities)
+    for (const entity of project.world.entities) {
+      if (entity.kind === 'road') continue
+      const model = this.createModel(entity)
+      model.userData.entityId = entity.id
+      this.scene.add(model)
+      this.models.set(entity.id, model)
+    }
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(this.host)
     this.resize()
   }
 
+  private material(color: number) { return new THREE.MeshLambertMaterial({ color }) }
+  private box(group: THREE.Group, size: [number, number, number], position: [number, number, number], color: number) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), this.material(color)); mesh.position.set(...position); group.add(mesh)
+  }
+  private cylinder(group: THREE.Group, radius: number, height: number, position: [number, number, number], color: number, rotationX = 0) {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 8), this.material(color)); mesh.position.set(...position); mesh.rotation.x = rotationX; group.add(mesh)
+  }
+  private sphere(group: THREE.Group, radius: number, position: [number, number, number], color: number, scale: [number, number, number] = [1, 1, 1]) {
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 8, 6), this.material(color)); mesh.position.set(...position); mesh.scale.set(...scale); group.add(mesh)
+  }
+
   private buildStaticWorld(project: Readonly<CreatiBoxProject>) {
     const bounds = project.world.worldBounds ?? { width: 1800, height: 1000 }
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(bounds.width, bounds.height),
-      new THREE.MeshLambertMaterial({ color: 0x6fa35a }),
-    )
-    ground.rotation.x = -Math.PI / 2
-    ground.position.set(bounds.width / 2, -0.08, bounds.height / 2)
-    this.scene.add(ground)
-
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(bounds.width, bounds.height), this.material(0x6fa35a))
+    ground.rotation.x = -Math.PI / 2; ground.position.set(bounds.width / 2, -0.12, bounds.height / 2); this.scene.add(ground)
     const track = project.world.trackPath ?? []
     for (let index = 1; index < track.length; index++) {
-      const from = track[index - 1]
-      const to = track[index]
-      const length = Math.hypot(to.x - from.x, to.y - from.y)
-      const road = new THREE.Mesh(
-        new THREE.BoxGeometry(length, 0.18, 170),
-        new THREE.MeshLambertMaterial({ color: 0x475569 }),
-      )
-      road.position.set((from.x + to.x) / 2, 0, (from.y + to.y) / 2)
-      road.rotation.y = -Math.atan2(to.y - from.y, to.x - from.x)
-      this.scene.add(road)
+      const from = track[index - 1], to = track[index]
+      const length = Math.hypot(to.x - from.x, to.y - from.y) + 3
+      const angle = -Math.atan2(to.y - from.y, to.x - from.x), x = (from.x + to.x) / 2, z = (from.y + to.y) / 2
+      const road = new THREE.Mesh(new THREE.BoxGeometry(length, 0.18, 170), this.material(0x475569))
+      road.position.set(x, 0, z); road.rotation.y = angle; this.scene.add(road)
+      for (const side of [-1, 1]) {
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.2, 3), this.material(0xf8fafc))
+        edge.position.set(x + Math.sin(angle) * side * 80, 0.12, z + Math.cos(angle) * side * 80); edge.rotation.y = angle; this.scene.add(edge)
+      }
     }
   }
 
-  private buildEntities(entities: readonly Entity[]) {
-    for (const entity of entities) {
-      if (['road', 'start', 'finish'].includes(entity.kind)) continue
-      const transform = toThreeTransform(entity)
-      const geometry = entity.kind === 'tree'
-        ? new THREE.CylinderGeometry(entity.size.x * 0.18, entity.size.x * 0.28, transform.scale.y, 8)
-        : new THREE.BoxGeometry(transform.scale.x, transform.scale.y, transform.scale.z)
-      const material = new THREE.MeshLambertMaterial({ color: entity.color })
-      const mesh = new THREE.Mesh(geometry, material)
-      mesh.userData.entityId = entity.id
-      this.scene.add(mesh)
-      this.meshes.set(entity.id, mesh)
-    }
+  private createModel(entity: Readonly<Entity>) {
+    const group = new THREE.Group(), length = Math.max(12, entity.size.x), width = Math.max(8, entity.size.y), color = entity.color
+    if (entity.kind === 'car') {
+      this.box(group, [length, 9, width], [0, 8, 0], color); this.box(group, [length * .42, 8, width * .72], [-length * .05, 16, 0], 0xb9d8ed)
+      for (const x of [-length * .3, length * .3]) for (const z of [-width * .54, width * .54]) this.cylinder(group, 4, 3, [x, 5, z], 0x111827, Math.PI / 2)
+      this.box(group, [2, 3, width * .75], [length * .51, 8, 0], 0xfef3c7)
+    } else if (entity.kind === 'horse') {
+      this.box(group, [length * .72, 18, width * .72], [-length * .05, 20, 0], color); this.box(group, [length * .16, 20, width * .28], [length * .3, 34, 0], color); this.box(group, [length * .28, 13, width * .35], [length * .45, 45, 0], color)
+      for (const x of [-length * .27, length * .22]) for (const z of [-width * .24, width * .24]) this.box(group, [5, 22, 5], [x, 6, z], 0x5b3523)
+    } else if (entity.kind === 'human') {
+      this.box(group, [width * .5, 22, width * .32], [0, 27, 0], color); this.sphere(group, width * .22, [0, 45, 0], 0xf2c7a5)
+      for (const z of [-width * .2, width * .2]) this.box(group, [5, 22, 5], [0, 10, z], 0x334155)
+      for (const z of [-width * .42, width * .42]) this.box(group, [5, 20, 5], [0, 28, z], color)
+    } else if (entity.kind === 'sheep') {
+      this.sphere(group, length * .34, [-length * .05, 24, 0], 0xf1f5f9, [1.25, .8, .72]); this.box(group, [length * .2, 15, width * .4], [length * .38, 27, 0], 0x3f3f46)
+      for (const x of [-length * .22, length * .18]) for (const z of [-width * .2, width * .2]) this.box(group, [4, 18, 4], [x, 8, z], 0x3f3f46)
+    } else if (entity.kind === 'tree') {
+      this.cylinder(group, Math.max(4, width * .1), Math.max(25, width * .55), [0, width * .28, 0], 0x7c4a2d); this.sphere(group, width * .42, [0, width * .72, 0], color, [1, 1.2, 1])
+    } else if (entity.kind === 'start' || entity.kind === 'finish') {
+      const marker = entity.kind === 'finish' ? 0xffffff : 0x2563eb
+      this.box(group, [4, 42, 4], [0, 21, -width / 2], marker); this.box(group, [4, 42, 4], [0, 21, width / 2], marker); this.box(group, [4, 4, width], [0, 42, 0], marker)
+    } else this.box(group, [length, Math.max(10, width * .45), width], [0, Math.max(5, width * .225), 0], color)
+    return group
   }
 
   render(project: Readonly<CreatiBoxProject>, player: Readonly<Entity>): FirstPersonStats {
-    if (this.disposed) return { drawCalls: 0, triangles: 0 }
+    if (this.disposed) return { drawCalls: 0, triangles: 0, visibleEntities: 0, qualityTier: this.quality.tier }
+    let visibleEntities = 0
     for (const entity of project.world.entities) {
-      const mesh = this.meshes.get(entity.id)
-      if (!mesh) continue
-      const transform = toThreeTransform(entity)
-      mesh.position.set(transform.position.x, transform.position.y, transform.position.z)
-      mesh.rotation.y = transform.rotationY
-      const material = mesh.material as THREE.MeshLambertMaterial
-      material.opacity = entity.state === 'Broken' ? 0.48 : 1
-      material.transparent = material.opacity < 1
-      material.emissive.setHex(entity.state === 'Damaged' || entity.state === 'Broken' ? 0x451111 : 0x000000)
+      const model = this.models.get(entity.id); if (!model) continue
+      model.visible = entity.id !== player.id && isWithinFirstPersonRange(entity, player.position, this.quality.farDistance); if (!model.visible) continue
+      visibleEntities += 1; model.position.set(entity.position.x, 0, entity.position.y); model.rotation.y = -entity.rotation
+      model.traverse(object => { if (!(object instanceof THREE.Mesh)) return; const material = object.material as THREE.MeshLambertMaterial; material.opacity = entity.state === 'Broken' ? .48 : 1; material.transparent = material.opacity < 1; material.emissive.setHex(entity.state === 'Damaged' || entity.state === 'Broken' ? 0x451111 : 0) })
     }
-    const frame = firstPersonCameraFrame(player)
-    this.camera.position.set(frame.position.x, frame.position.y, frame.position.z)
-    this.camera.lookAt(frame.target.x, frame.target.y, frame.target.z)
-    this.renderer.render(this.scene, this.camera)
-    return { drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles }
+    const frame = firstPersonCameraFrame(player); this.camera.position.set(frame.position.x, frame.position.y, frame.position.z); this.camera.lookAt(frame.target.x, frame.target.y, frame.target.z); this.renderer.render(this.scene, this.camera)
+    return { drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, visibleEntities, qualityTier: this.quality.tier }
   }
 
-  private resize() {
-    if (this.disposed) return
-    const width = Math.max(1, this.host.clientWidth)
-    const height = Math.max(1, this.host.clientHeight)
-    this.camera.aspect = width / height
-    this.camera.updateProjectionMatrix()
-    this.renderer.setSize(width, height, false)
-  }
-
+  private resize() { if (this.disposed) return; const width = Math.max(1, this.host.clientWidth), height = Math.max(1, this.host.clientHeight); this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false) }
   dispose() {
-    if (this.disposed) return
-    this.disposed = true
-    this.resizeObserver.disconnect()
-    this.scene.traverse(object => {
-      if (!(object instanceof THREE.Mesh)) return
-      object.geometry.dispose()
-      const materials = Array.isArray(object.material) ? object.material : [object.material]
-      for (const material of materials) material.dispose()
-    })
-    this.meshes.clear()
-    this.renderer.dispose()
-    this.renderer.forceContextLoss()
-    this.renderer.domElement.remove()
+    if (this.disposed) return; this.disposed = true; this.resizeObserver.disconnect()
+    this.scene.traverse(object => { if (!(object instanceof THREE.Mesh)) return; object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; for (const material of materials) material.dispose() })
+    this.models.clear(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove()
   }
 }

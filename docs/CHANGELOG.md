@@ -2,6 +2,14 @@
 
 ## 2026-09-25
 
+### First-Person Phase 7 visual and performance polish
+
+- Replaced generic First-Person boxes with distinct procedural low-poly Car, Horse, Human and Sheep silhouettes plus tree, obstacle, wall and start/finish mappings. Each model remains one display group keyed by the original Entity ID.
+- Added overlapping road segments and edge lines, and hid only the player's own display proxy in First-Person to prevent camera/body occlusion without changing its Runtime entity or collision body.
+- Added standard/low quality selection with bounded DPR and display distance, plus display-only range culling. Runtime tick rate, logical entities and collision ranges remain unchanged.
+- Added 500/1,000-entity pressure fixtures. Browser QA observed standard tier, 10/21 entities visible, 35 draw calls / 842 triangles, Runtime generation 1, complete WebGL canvas cleanup and no console warning/error.
+- The procedural adapter is 2.45 kB gzip; the shared Three lazy chunk remains 129.51 kB gzip and retains the explicit Vite large-chunk warning. No deployment.
+
 ### Multi-View Phase 6 First-Person MVP
 
 - Added a lazily loaded Three.js First-Person run view beside Top-Down and Oblique. All three read the same WorldRuntime; switching preserves elapsed time, participants, waypoints, finish order, input, audio and HUD.

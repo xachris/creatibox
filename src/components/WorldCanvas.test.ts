@@ -14,7 +14,7 @@ vi.mock('../render/firstPersonRenderer', () => ({
       if (three.fail) throw new Error('WebGL unavailable')
       this.canvas.dataset.renderer = 'first-person'; host.appendChild(this.canvas); three.mounts += 1
     }
-    render() { three.renders += 1; return { drawCalls: 12, triangles: 24 } }
+    render() { three.renders += 1; return { drawCalls: 12, triangles: 24, visibleEntities: 9, qualityTier: 'standard' } }
     dispose() { this.canvas.remove(); three.disposals += 1 }
   },
 }))

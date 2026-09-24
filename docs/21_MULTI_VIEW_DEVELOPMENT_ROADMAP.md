@@ -250,4 +250,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-Phase 6 MVP 已完成。下一轮应做真实资产与低端设备性能阶段：四类 participant 的 Billboard / 低模资产质量、道路接缝、碰撞反馈、首次加载体验和 Chrome / Edge / Safari 性能；继续保持 Top-Down 为默认编辑视图，不扩展 3D 物理。
+Phase 7 第一轮视觉与性能优化已完成，详见 [23_FIRST_PERSON_VISUAL_PERFORMANCE_POLISH.md](23_FIRST_PERSON_VISUAL_PERFORMANCE_POLISH.md)：四类 participant 获得可区分的程序化低模，道路边线/接缝、玩家自身遮挡、低端 DPR 和距离裁剪已处理。下一轮应做共享 geometry / material、静态对象 instancing、首次加载计时及 Chrome / Edge / Safari 和真实低端设备矩阵；继续保持 Top-Down 为默认编辑视图，不扩展 3D 物理。
