@@ -2,7 +2,7 @@
 
 ## 1. 状态、目标与执行规则
 
-Phase 0 文档与 Phase 1 Renderer abstraction 已完成。Phase 2–6 尚未启动；当前产品仍只有 Top-Down 视图，没有 Oblique 或 First-Person 实现。
+Phase 0 文档、Phase 1 Renderer abstraction 与 Phase 2 Oblique MVP 已完成。Phase 3–6 尚未启动；Oblique 当前只通过本地开发配置用于运行模式，没有产品化切换入口或斜视编辑，First-Person 未实现。
 
 基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`。架构契约见 [20_MULTI_VIEW_RENDERER_ARCHITECTURE.md](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)。先保持 Top-Down 不变，再实现 Oblique，最后通过 spike 决定是否做真正 First-Person。
 
@@ -16,7 +16,7 @@ Phase 0 文档与 Phase 1 Renderer abstraction 已完成。Phase 2–6 尚未启
 | --- | --- | --- | --- | --- |
 | 0 文档 / 架构冻结 | 已完成 | 读取现有规范与 main | 两份规范、索引、变更记录、文档提交 | 2026-09-24 已完成 |
 | 1 Renderer abstraction | 2–3 开发日 | Phase 0 | Top-Down 经适配层运行且无行为变化 | 2026-09-24 已完成 |
-| 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 未启动 |
+| 2 Oblique MVP | 3–5 开发日 | Phase 1 | 固定斜投影的四类混合竞速可运行 | 2026-09-24 已完成 |
 | 3 Oblique polish | 3–5 开发日 | Phase 2 | 遮挡、资产锚点、方向和性能达标 | 未启动 |
 | 4 View switching | 2–3 开发日 | Phase 3 | 不重建 Runtime 的双视图切换与偏好保存 | 未启动 |
 | 5 First-Person architecture spike | 限时 3–5 开发日 | Phase 4 | 比较报告、最小原型、Go / No-Go | 未启动，不承诺产品化 |
@@ -83,6 +83,15 @@ Phase 0 文档与 Phase 1 Renderer abstraction 已完成。Phase 2–6 尚未启
 - 同 world/seed/输入/dt 的 Runtime trace 与 Top-Down 完全一致，碰撞/waypoint/排名不受投影影响。
 - 摄像机持续跟随正确 Entity ID，缩放不更改速度、碰撞或位置；遮挡排序在简单资产范围正确。
 - MVP 仅运行；编辑仍 Top-Down，不对未实现的斜视点击/拖拽作出承诺。长墙、多层交叉等限制有可复现记录。
+
+### 完成记录（2026-09-24）
+
+- 新增固定朝向 PixiJS `ObliqueRenderer`：`screenX=(x-y)*0.72`、`screenY=(x+y)*0.36-z`，并提供 z=0 地面逆投影、方向投影和缩放接口。
+- 世界边界以投影菱形绘制；道路中心线、Car / Horse / Human / Sheep、tree / wall / obstacle / start / finish 使用同一投影。斜视对象增加简单接地阴影，未引入外部资产或 3D 引擎。
+- 起终点进入地面层；其他实体按 projected foot point、Entity ID 稳定排序。大物件拆分、树冠遮挡与更高质量 anchor 留给 Phase 3。
+- 运行相机按同一 participant ID 跟随投影位置，采用 20% dead zone、约 150 ms 时间平滑和最多短边 15% 的速度方向 look-ahead；zoom 继续由显示态控制，初始为 1。
+- 本地开发时使用 `?view=oblique` 在一次 Run 前选择斜视；生产构建和编辑模式保持 Top-Down。没有运行中切换或 view 存档字段。
+- 240 项测试、typecheck 与 production build 通过；自动测试证明 Top-Down / Oblique 在相同世界与时间步下产生相同 HUD 运行进度。浏览器实际完成 Horse 混合比赛启动、倒计时、CPU 推进、斜视道路/树/实体/阴影、HUD 与重赛，控制台无错误。未部署。
 
 ---
 
@@ -204,4 +213,4 @@ Go 必须同时满足：使用同一 World/Entity/Rule/Runtime；固定 trace �
 
 ## 12. 下一轮实施入口
 
-下一轮若继续开发，从 Phase 2 Oblique MVP 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)复用 Phase 1 边界并逐项验收；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。
+下一轮若继续开发，从 Phase 3 Oblique polish 开始，依据 [20 架构设计](20_MULTI_VIEW_RENDERER_ARCHITECTURE.md)完善遮挡、anchor、方向与性能；不同时开工 First-Person，不跳过阶段门禁。进度以证据更新，新增计划不等于已有代码能力。

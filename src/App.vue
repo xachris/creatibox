@@ -28,6 +28,10 @@ const showRaceComposer = ref(false)
 const screen = ref<'home' | 'launch' | 'editor'>('home')
 const hasRecentProject = ref(false)
 const saveError = ref('')
+const configuredRunViewMode = import.meta.env.DEV
+  && new URLSearchParams(window.location.search).get('view') === 'oblique'
+  ? 'oblique'
+  : 'top-down'
 let autosaveTimer: number | undefined
 
 const selected = computed(() =>
@@ -329,6 +333,7 @@ function setColor(value: string) {
           :project="project"
           :selected-id="selectedId"
           :mode="mode"
+          :view-mode="mode === 'run' ? configuredRunViewMode : 'top-down'"
           @select="selectedId = $event"
           @move="moveEntity"
           @edit="mode = 'edit'"

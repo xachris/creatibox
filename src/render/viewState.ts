@@ -22,9 +22,9 @@ export const DEFAULT_EDIT_VIEW_STATE: Readonly<ViewState> = Object.freeze({
   followMode: 'none',
 })
 
-export function createRunViewState(cameraTarget: string | null = null): ViewState {
+export function createRunViewState(cameraTarget: string | null = null, viewMode: ViewMode = 'top-down'): ViewState {
   return {
-    viewMode: 'top-down',
+    viewMode,
     cameraTarget,
     zoom: 1,
     rotation: 0,
@@ -40,4 +40,9 @@ export interface Viewport {
 export interface CameraFrame {
   viewport: Viewport
   target?: Pick<Vec2, 'x' | 'y'> | null
+}
+
+export interface CameraStrategy {
+  deadZoneRatio?: number
+  smoothing?: number
 }

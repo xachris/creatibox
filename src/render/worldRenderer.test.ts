@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Application } from 'pixi.js'
 import { CameraController } from './cameraController'
 import { createRunViewState, DEFAULT_EDIT_VIEW_STATE } from './viewState'
-import { TopDownRenderer } from './worldRenderer'
+import { ObliqueRenderer, TopDownRenderer } from './worldRenderer'
 
 vi.mock('pixi.js', () => {
   class Container {
@@ -28,7 +28,7 @@ describe('top-down renderer boundary', () => {
     const state = createRunViewState('player')
     const target = Object.freeze({ x: 350, y: 420 })
 
-    renderer.updateCamera(state, target)
+    renderer.updateCamera(state, { position: target, rotation: 0, speed: 0 })
 
     expect(renderer.worldLayer.position).toMatchObject({ x: 150, y: -70 })
     expect(target).toEqual({ x: 350, y: 420 })
@@ -39,8 +39,8 @@ describe('top-down renderer boundary', () => {
   it('does not follow in edit mode and resets every display transform', () => {
     const app = new Application()
     const renderer = new TopDownRenderer(app)
-    renderer.updateCamera(createRunViewState('player'), { x: 350, y: 420 })
-    renderer.updateCamera(DEFAULT_EDIT_VIEW_STATE, { x: 900, y: 900 })
+    renderer.updateCamera(createRunViewState('player'), { position: { x: 350, y: 420 }, rotation: 0, speed: 0 })
+    renderer.updateCamera(DEFAULT_EDIT_VIEW_STATE, { position: { x: 900, y: 900 }, rotation: 0, speed: 0 })
     expect(renderer.worldLayer.position).toMatchObject({ x: 150, y: -70 })
 
     renderer.resetCamera()
@@ -64,5 +64,44 @@ describe('top-down renderer boundary', () => {
     renderer.render(worldLayer => { worldLayer.addChild({ destroy } as never) })
     renderer.render(() => {})
     expect(destroy).toHaveBeenCalledOnce()
+  })
+})
+
+describe('oblique renderer projection', () => {
+  it('projects and inverses ground coordinates without touching world data', () => {
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    const point = Object.freeze({ x: 100, y: 40 })
+
+    expect(renderer.toLayer(point)).toEqual({ x: 43.199999999999996, y: 50.4 })
+    const restored = renderer.unprojectLayer(renderer.toLayer(point))
+    expect(restored.x).toBeCloseTo(100, 10)
+    expect(restored.y).toBeCloseTo(40, 10)
+    expect(point).toEqual({ x: 100, y: 40 })
+  })
+
+  it('follows the projected participant and keeps the target centered', () => {
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    const target = { x: 350, y: 420 }
+    renderer.updateCamera(createRunViewState('player', 'oblique'), { position: target, rotation: 0, speed: 0 })
+    expect(renderer.project(target).x).toBeCloseTo(500, 10)
+    expect(renderer.project(target).y).toBeCloseTo(350, 10)
+  })
+
+  it('draws floor markers first and sorts world objects by projected foot point', () => {
+    const app = new Application()
+    const renderer = new ObliqueRenderer(app)
+    const entity = (id: string, kind: 'car' | 'tree' | 'finish', x: number, y: number) => ({
+      id, kind, name: id, position: { x, y }, size: { x: 40, y: 40 }, rotation: 0,
+      color: 0, movable: false, state: 'Idle' as const, durability: 100, maxDurability: 100,
+      speed: 0, maxSpeed: 0,
+    })
+    const ordered = renderer.orderEntities([
+      entity('near', 'tree', 100, 100),
+      entity('far', 'car', 20, 20),
+      entity('finish', 'finish', 200, 200),
+    ])
+    expect(ordered.map(item => item.id)).toEqual(['finish', 'far', 'near'])
   })
 })

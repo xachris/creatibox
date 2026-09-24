@@ -6,13 +6,14 @@ import { drawLivingParticipant } from '../render/participant'
 import { WorldRuntime, raceStandings } from '../runtime/worldRuntime'
 import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 import { raceAudio } from '../media/sound/audioDirector'
-import { TopDownRenderer, type IWorldRenderer } from '../render/worldRenderer'
-import { createRunViewState, DEFAULT_EDIT_VIEW_STATE, type ViewState } from '../render/viewState'
+import { createWorldRenderer, type IWorldRenderer } from '../render/worldRenderer'
+import { createRunViewState, DEFAULT_EDIT_VIEW_STATE, type ViewMode, type ViewState } from '../render/viewState'
 
 const props = defineProps<{
   project: CreatiBoxProject
   selectedId: string | null
   mode: 'edit' | 'run'
+  viewMode?: Extract<ViewMode, 'top-down' | 'oblique'>
 }>()
 
 const emit = defineEmits<{
@@ -53,24 +54,33 @@ function activeEntities(): Entity[] {
 }
 
 function drawTrack(path: Vec2[]) {
-  const worldLayer = renderer?.worldLayer
-  if (!worldLayer || path.length < 2) return
+  const activeRenderer = renderer
+  const worldLayer = activeRenderer?.worldLayer
+  if (!activeRenderer || !worldLayer || path.length < 2) return
   const road = new Graphics()
-  road.moveTo(path[0].x, path[0].y)
-  for (const point of path.slice(1)) road.lineTo(point.x, point.y)
-  road.stroke({ width: 170, color: 0x475569, cap: 'round', join: 'round' })
+  const first = activeRenderer.toLayer(path[0])
+  road.moveTo(first.x, first.y)
+  for (const point of path.slice(1)) {
+    const projected = activeRenderer.toLayer(point)
+    road.lineTo(projected.x, projected.y)
+  }
+  road.stroke({ width: activeRenderer.strokeScale(170), color: 0x475569, cap: 'round', join: 'round' })
 
   const center = new Graphics()
-  center.moveTo(path[0].x, path[0].y)
-  for (const point of path.slice(1)) center.lineTo(point.x, point.y)
-  center.stroke({ width: 4, color: 0xf8fafc, alpha: 0.7, cap: 'round', join: 'round' })
+  center.moveTo(first.x, first.y)
+  for (const point of path.slice(1)) {
+    const projected = activeRenderer.toLayer(point)
+    center.lineTo(projected.x, projected.y)
+  }
+  center.stroke({ width: activeRenderer.strokeScale(4), color: 0xf8fafc, alpha: 0.7, cap: 'round', join: 'round' })
 
   worldLayer.addChild(road, center)
 }
 
 function drawEntity(entity: Entity) {
-  const worldLayer = renderer?.worldLayer
-  if (!worldLayer) return
+  const activeRenderer = renderer
+  const worldLayer = activeRenderer?.worldLayer
+  if (!activeRenderer || !worldLayer) return
   const graphic = new Graphics()
   const selected = props.mode === 'edit' && entity.id === props.selectedId
   const alpha = entity.state === 'Broken' ? 0.42 : 1
@@ -78,6 +88,10 @@ function drawEntity(entity: Entity) {
   const previous = gait.get(entity.id)
   const distance = (previous?.distance ?? 0) + (previous ? Math.hypot(entity.position.x - previous.x, entity.position.y - previous.y) : 0)
   gait.set(entity.id, { x: entity.position.x, y: entity.position.y, distance })
+  if (activeRenderer.viewMode === 'oblique' && !['start', 'finish'].includes(entity.kind)) {
+    graphic.roundRect(-entity.size.x * 0.38, entity.size.y * 0.18, entity.size.x * 0.76, Math.max(5, entity.size.y * 0.22), 999)
+      .fill({ color: 0x1f2937, alpha: 0.2 })
+  }
   if (drawLivingParticipant(graphic, entity, distance)) {
     if (selected) graphic.circle(0, 0, 32).stroke({ width: 2, color: 0x2563eb })
   } else if (entity.kind === 'tree') {
@@ -145,8 +159,9 @@ function drawEntity(entity: Entity) {
     }
   }
 
-  graphic.position.set(entity.position.x, entity.position.y)
-  graphic.rotation = entity.rotation
+  const projected = activeRenderer.toLayer(entity.position)
+  graphic.position.set(projected.x, projected.y)
+  graphic.rotation = activeRenderer.projectRotation(entity.rotation)
   graphic.eventMode = 'static'
   graphic.cursor = props.mode === 'edit' ? 'move' : 'default'
 
@@ -174,18 +189,24 @@ function render() {
 
   renderer.render(worldLayer => {
     const ground = new Graphics()
-    ground.rect(0, 0, bounds.width, bounds.height).fill(0xdbe7cf)
+    const corners = [
+      renderer!.toLayer({ x: 0, y: 0 }),
+      renderer!.toLayer({ x: bounds.width, y: 0 }),
+      renderer!.toLayer({ x: bounds.width, y: bounds.height }),
+      renderer!.toLayer({ x: 0, y: bounds.height }),
+    ]
+    ground.poly(corners.flatMap(point => [point.x, point.y])).fill(0xdbe7cf)
     worldLayer.addChild(ground)
 
     if (project.world.trackPath?.length) drawTrack(project.world.trackPath)
-    for (const entity of activeEntities()) {
+    for (const entity of renderer!.orderEntities(activeEntities())) {
       if (entity.kind !== 'road') drawEntity(entity)
     }
   })
 }
 
-function followPlayer(player: Entity) {
-  renderer?.updateCamera(viewState, player.position)
+function followPlayer(player: Entity, deltaSeconds = 0) {
+  renderer?.updateCamera(viewState, player, deltaSeconds)
 }
 
 function syncHud() {
@@ -255,7 +276,7 @@ function initializeRuntime() {
   try {
     runtime = new WorldRuntime(props.project)
     runtimeProject = runtime.project
-    viewState = createRunViewState(runtime.player.id)
+    viewState = createRunViewState(runtime.player.id, props.viewMode ?? 'top-down')
     previousPhase = null
     raceAudio.beginRace(runtime.player.soundPreset ?? 'sport', runtime.player.id, runtime.player.movementStyle)
     muted.value = raceAudio.isMuted()
@@ -275,7 +296,7 @@ function initializeRuntime() {
 function runStep(deltaSeconds: number) {
   if (!runtime || document.hidden) return
   runtime.step(deltaSeconds, keys)
-  followPlayer(runtime.player)
+  followPlayer(runtime.player, deltaSeconds)
   syncHud()
   syncRaceAudio()
   render()
@@ -294,7 +315,7 @@ onMounted(async () => {
     if (disposed || !host.value) { instance.destroy(true, { children: true }); return }
     host.value.appendChild(app.canvas)
 
-    renderer = new TopDownRenderer(app)
+    renderer = createWorldRenderer(app, props.mode === 'run' ? (props.viewMode ?? 'top-down') : 'top-down')
     app.stage.eventMode = 'static'
     app.stage.hitArea = app.screen
 
@@ -344,6 +365,9 @@ function onKeyUp(event: KeyboardEvent) {
 }
 
 watch(() => props.mode, (mode) => {
+  if (!app) return
+  renderer?.dispose()
+  renderer = createWorldRenderer(app, mode === 'run' ? (props.viewMode ?? 'top-down') : 'top-down')
   if (mode === 'run') initializeRuntime()
   else {
     raceAudio.stopAll()

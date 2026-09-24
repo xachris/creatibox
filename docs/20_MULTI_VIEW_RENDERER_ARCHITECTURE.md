@@ -2,7 +2,7 @@
 
 ## 1. 文档目的与状态
 
-为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档与 Phase 1 Top-Down renderer abstraction 已完成；Oblique、运行中视图切换与 First-Person 尚未实现。
+为同一个世界增加 Top-Down、Oblique / Isometric 2.5D 与未来 First-Person 三类视图。Phase 0 文档、Phase 1 Top-Down renderer abstraction 与 Phase 2 Oblique MVP 已完成；Oblique polish、运行中视图切换与 First-Person 尚未实现。
 
 设计基线：`main` @ `7c58ad3c18cba4a44cd434ba78ddeee172c72f21`（2026-09-24）。当前四类竞速实体已经共用 WorldRuntime；本文不是再次实施 Unified Race，也不把视图能力标为已完成。[开发计划](21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md)定义 Phase 0–6 的顺序与验收门禁。
 

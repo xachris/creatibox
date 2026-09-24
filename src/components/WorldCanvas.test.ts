@@ -50,6 +50,22 @@ function tick(seconds: number) { for (let i = 0; i < seconds * 60; i++) pixi.tic
 function button(w: ReturnType<typeof mount>, text: string) { return w.findAll('button').find(b => b.text() === text)! }
 
 describe('WorldCanvas entry and restart', () => {
+  it('produces the same runtime progress in top-down and oblique views', async () => {
+    async function progress(viewMode: 'top-down' | 'oblique') {
+      const w = mount(WorldCanvas, { props: { project: project(), mode: 'run', selectedId: null, viewMode } })
+      wrappers.push(w)
+      await flushPromises()
+      tick(8)
+      await flushPromises()
+      const value = w.get('[aria-label="比赛进度"]').text()
+      w.unmount()
+      wrappers.splice(wrappers.indexOf(w), 1)
+      return value
+    }
+
+    expect(await progress('oblique')).toBe(await progress('top-down'))
+  })
+
   it('initializes on first run mount, counts down, follows player and restarts', async () => {
     const source = project()
     const w = mount(WorldCanvas, { props: { project: source, mode: 'run', selectedId: null }, attachTo: document.body })

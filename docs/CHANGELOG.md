@@ -2,6 +2,15 @@
 
 ## 2026-09-24
 
+### Multi-View Phase 2 Oblique MVP
+
+- Added a PixiJS fixed-heading Oblique renderer using the shared 2D world coordinates, with inverse ground projection, projected entity direction and a diamond-shaped world ground.
+- Projected roads and all current Race World objects (Car, Horse, Human, Sheep, tree, wall, obstacle, start and finish); added simple grounding shadows without a 3D engine or new asset dependency.
+- Added stable projected-foot-point depth ordering, floor-layer start/finish markers, projected participant camera follow, a 20% dead zone, time-based smoothing and bounded velocity look-ahead.
+- Oblique is run-only and selected through the local development query `?view=oblique`; production and Edit remain Top-Down. Runtime view switching, persistence and Oblique editing remain later phases.
+- Validation: typecheck, production build and 240 tests pass, including matching Top-Down / Oblique runtime progress. Browser QA ran a Horse mixed race with projected road, trees, racers, shadows, HUD and restart; no console errors.
+- No WorldRuntime, physics, rules, entity schema, dependency/version or deployment change.
+
 ### Multi-View Phase 1 renderer abstraction
 
 - Added display-only `ViewState`, `CameraController`, `IWorldRenderer` and a `TopDownRenderer` adapter while preserving the existing PixiJS top-down output and camera formula.
