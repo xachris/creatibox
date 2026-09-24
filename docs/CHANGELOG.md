@@ -2,6 +2,14 @@
 
 ## 2026-09-24
 
+### Multi-View / Multi-Renderer architecture and roadmap
+
+- 设计阶段，仅文档，无代码实现。Added `docs/20_MULTI_VIEW_RENDERER_ARCHITECTURE.md` and `docs/21_MULTI_VIEW_DEVELOPMENT_ROADMAP.md`; linked both from README.
+- Defined one authoritative World / Entity / Rule / WorldRuntime, renderer and camera boundaries, optional ViewState preferences, legacy Top-Down defaults, Oblique projection / foot-point depth sorting, assets, selection mapping and camera strategy.
+- Planned gated Phase 0–6 delivery: unchanged Top-Down adapter first, PixiJS Oblique MVP / polish / continuous view switching next, then a conditional First-Person spike comparing limited raycast experiments with Three.js / Babylon.js renderers.
+- Defined runtime equivalence and switching continuity tests, authoring isolation, browser QA and desktop performance budgets. These are future acceptance criteria, not completed implementation or measured performance.
+- Documentation only: no runtime, UI, renderer, assets, dependencies, file-format implementation, version or deployment configuration changes; no deployment as part of this work.
+
 ### Unified Race collision and identity correction
 
 - Enlarged Horse, Human and Sheep SAT bodies to contain their complete vector silhouettes, preventing visible body overlap while keeping rendering separate from physics.
