@@ -2,6 +2,13 @@
 
 ## 2026-09-25
 
+### Oblique Horse V1 runtime art integration
+
+- Replaced the Oblique horse's procedural vector drawing with the approved transparent Horse Brown V1 atlas while retaining the vector renderer as a load-failure fallback.
+- Added four authored directions, mirrored left-facing variants, one idle frame and a distance-driven four-frame run loop. Sprite animation, mirroring, scale and bottom-center anchoring remain display-only.
+- Kept Top-Down visuals and the shared Entity, collision body, waypoints, ranking and WorldRuntime unchanged. Top-Down / Oblique switching continues without rebuilding the race.
+- Validation: 260 tests and the production build pass. Browser QA rendered the atlas in a live Horse circuit race, preserved Runtime generation 1 across Top-Down / Oblique switching and recorded no console errors. No deployment.
+
 ### First-Person Phase 7 visual and performance polish
 
 - Replaced generic First-Person boxes with distinct procedural low-poly Car, Horse, Human and Sheep silhouettes plus tree, obstacle, wall and start/finish mappings. Each model remains one display group keyed by the original Entity ID.

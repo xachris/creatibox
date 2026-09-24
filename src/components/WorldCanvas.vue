@@ -8,6 +8,7 @@ import { DEFAULT_CAR_CONTROLS } from '../model/factory'
 import { raceAudio } from '../media/sound/audioDirector'
 import { createWorldRenderer, projectedFootY, type IWorldRenderer } from '../render/worldRenderer'
 import { createRunViewState, DEFAULT_EDIT_VIEW_STATE, type ViewMode, type ViewState } from '../render/viewState'
+import { createObliqueHorseSprite, preloadHorseAtlas } from '../render/horseAtlas'
 
 const props = defineProps<{
   project: CreatiBoxProject
@@ -101,6 +102,21 @@ function drawEntity(entity: Entity) {
       .fill({ color: 0x1f2937, alpha: 0.2 })
     shadow.position.set(projected.x, projected.y)
     worldLayer.addChild(shadow)
+  }
+  if (activeRenderer.viewMode === 'oblique' && entity.kind === 'horse') {
+    const sprite = createObliqueHorseSprite(entity, distance)
+    if (sprite) {
+      sprite.position.set(projected.x, projected.y)
+      sprite.eventMode = 'static'
+      sprite.cursor = props.mode === 'edit' ? 'move' : 'default'
+      sprite.on('pointerdown', (event: FederatedPointerEvent) => {
+        if (props.mode !== 'edit') return
+        event.stopPropagation()
+        emit('select', entity.id)
+      })
+      worldLayer.addChild(sprite)
+      return
+    }
   }
   if (drawLivingParticipant(graphic, entity, distance)) {
     if (selected) graphic.circle(0, 0, 32).stroke({ width: 2, color: 0x2563eb })
@@ -423,6 +439,7 @@ onMounted(async () => {
     host.value.appendChild(app.canvas)
 
     renderer = createWorldRenderer(app, props.mode === 'run' && props.viewMode === 'oblique' ? 'oblique' : 'top-down')
+    void preloadHorseAtlas().then(loaded => { if (loaded && !disposed) render() })
     app.stage.eventMode = 'static'
     app.stage.hitArea = app.screen
 

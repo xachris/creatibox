@@ -46,7 +46,15 @@ vi.mock('pixi.js', () => {
     fill() { return this } stroke() { return this } moveTo() { return this }
     lineTo() { return this } poly() { return this }
   }
-  return { Container, Graphics, Application: class {
+  class Sprite extends Container {
+    anchor = { set() {} }
+    width = 0
+    height = 0
+    alpha = 1
+  }
+  class Texture { source = {}; constructor(_options?: unknown) {} }
+  class Rectangle { constructor(..._args: number[]) {} }
+  return { Container, Graphics, Sprite, Texture, Rectangle, Assets: { load: async () => new Texture() }, Application: class {
     canvas = document.createElement('canvas')
     stage = new Container()
     screen = { width: 1000, height: 700 }
