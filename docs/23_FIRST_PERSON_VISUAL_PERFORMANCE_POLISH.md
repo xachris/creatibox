@@ -60,3 +60,16 @@
 renderer 每帧只把距离范围内且位于当前相机视锥内的静态对象紧凑写入实例缓冲。空批次的 count 为 0，不提交 draw call。初版只做距离裁剪时，正常场景从 20 增至 23 draw calls，因此未接受；加入视锥紧凑提交后，同一 Horse 环形比赛恢复到 20 draw calls / 502 triangles，13 个距离范围内实体，standard 档首次初始化样本 11.9 ms。切回 Oblique 后 First-Person canvas 为 0，控制台无 warning/error。
 
 261 项测试、typecheck 与 production build 通过。下一步仍是 Chrome / Edge / Safari 与真实低端课堂设备矩阵；若继续扩大场景密度，再增加含 WebGL 统计的专用压力场景，不用纯 CPU fixture 代替 GPU 证据。
+
+## 8. 第四轮：500 / 1,000 Entity WebGL 压力门禁
+
+2026-09-25 新增仅开发环境使用的 `?experiment=first-person-pressure&entities=500|1000`。fixture 使用普通 Tree / Wall / Obstacle Entity 和正式 `FirstPersonRenderer`；保留一个权威玩家 Entity，不创建第二套 Runtime，不加入首页、生产导航或项目 view 存档。
+
+内置浏览器 standard 档实测：
+
+| 静态 Entity | FPS | Draw calls | Triangles | Init | Range-visible |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 500 | 120 | 8 | 22,614 | 16.1 ms | 501（含场景标记） |
+| 1,000 | 120 | 8 | 45,178 | 12.0 ms | 1,001（含场景标记） |
+
+退出 1,000 Entity 场景后 First-Person canvas 与全部 canvas 均为 0，控制台无 warning/error。263 项测试、typecheck 与 production build 通过。结果证明当前实例批处理在本机高密度静态场景中保持固定 draw-call 数；它仍不是 Chrome / Edge / Safari 或真实低端课堂设备结论，这些设备矩阵是下一门禁。

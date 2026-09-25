@@ -100,6 +100,15 @@ V0.1 **不做**：账号、班级、教师后台、云同步、AI、网络多人
 
 ## 4. 会话记录
 
+### 2026-09-25 — First-Person 500 / 1,000 Entity WebGL 压力门禁
+
+- **会话目标**：用正式 FirstPersonRenderer 建立真实 GPU 压力场景，替代仅有 CPU culling fixture 的证据缺口。
+- **分支 / PR**：`main`；无 PR。
+- **改动摘要**：新增开发隐藏入口和确定性 pressure project factory；生成普通 Tree / Wall / Obstacle Entity，保留单一玩家 Entity，不进入产品导航或存档模式。
+- **验证**：typecheck、263 tests、production build 通过。500 Entity：120 fps、8 calls、22,614 triangles、16.1 ms；1,000 Entity：120 fps、8 calls、45,178 triangles、12.0 ms。退出后 canvas 为 0，控制台无 warning/error。
+- **未完成 / 后续**：Chrome / Edge / Safari 与真实低端课堂设备矩阵。
+- **风险 / 边界**：数据仅代表当前内置浏览器与当前设备；fixture 验证显示密度，不模拟 1,000 个活动 Runtime participant；本轮不部署。
+
 ### 2026-09-25 — First-Person 静态场景实例化
 
 - **会话目标**：继续 Phase 7，将 tree / wall / obstacle 纳入实例批处理，同时避免正常场景 draw-call 回归。

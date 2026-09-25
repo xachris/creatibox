@@ -17,8 +17,12 @@ import { raceAudio } from './media/sound/audioDirector'
 type Snapshot = CreatiBoxProject
 
 const FirstPersonSpike = defineAsyncComponent(() => import('./experiments/firstPerson/FirstPersonSpike.vue'))
+const FirstPersonPressure = defineAsyncComponent(() => import('./experiments/firstPerson/FirstPersonPressure.vue'))
+const experiment = new URLSearchParams(window.location.search).get('experiment')
 const firstPersonSpikeEnabled = import.meta.env.DEV
-  && new URLSearchParams(window.location.search).get('experiment') === 'first-person'
+  && experiment === 'first-person'
+const firstPersonPressureEnabled = import.meta.env.DEV && experiment === 'first-person-pressure'
+const developmentExperimentEnabled = firstPersonSpikeEnabled || firstPersonPressureEnabled
 
 const project = ref<CreatiBoxProject>(createStarterProject())
 const selectedId = ref<string | null>(null)
@@ -247,10 +251,11 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique' | 'first-person') {
 
 <template>
   <FirstPersonSpike v-if="firstPersonSpikeEnabled" />
-  <input v-if="!firstPersonSpikeEnabled" ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
+  <FirstPersonPressure v-else-if="firstPersonPressureEnabled" />
+  <input v-if="!developmentExperimentEnabled" ref="fileInput" class="hidden-input" type="file" accept=".creatibox,application/json" @change="openFile" />
 
   <HomeCatalog
-    v-if="!firstPersonSpikeEnabled && screen === 'home'"
+    v-if="!developmentExperimentEnabled && screen === 'home'"
     :has-recent-project="hasRecentProject"
     @racing="screen = 'launch'"
     @continue="continueProject"
@@ -263,7 +268,7 @@ function setRunViewMode(viewMode: 'top-down' | 'oblique' | 'first-person') {
     @start="startRacingGame"
   />
 
-  <main v-else-if="!firstPersonSpikeEnabled" class="app-shell" :class="{ playing: mode === 'run' }">
+  <main v-else-if="!developmentExperimentEnabled" class="app-shell" :class="{ playing: mode === 'run' }">
     <RaceComposer
       v-if="showRaceComposer"
       @close="showRaceComposer = false"

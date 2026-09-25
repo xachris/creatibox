@@ -2,6 +2,13 @@
 
 ## 2026-09-25
 
+### First-Person 500/1,000 Entity WebGL pressure gate
+
+- Added a development-only `?experiment=first-person-pressure&entities=500|1000` fixture that feeds ordinary Tree / Wall / Obstacle Entities through the production FirstPersonRenderer. It does not add a second Runtime, product navigation entry or saved project mode.
+- Added fixture coverage for exact entity counts, stable IDs, the three static kinds, one authoritative player and a deterministic straight display path.
+- Browser GPU evidence at standard tier: 500 static Entities held 120 fps, 8 draw calls, 22,614 triangles and 16.1 ms initialization; 1,000 held 120 fps, 8 draw calls, 45,178 triangles and 12.0 ms initialization. Both samples reported all fixture scenery within display range.
+- Exiting the 1,000-Entity fixture removed the First-Person canvas; console warning/error count was zero. Validation: 263 tests, typecheck and production build pass. No deployment.
+
 ### First-Person static scenery instancing
 
 - Batched trees into shared trunk/crown `InstancedMesh` draws and walls/obstacles into a shared solid batch while retaining their original Entity IDs, positions, rotations, sizes and colors.
