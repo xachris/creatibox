@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Entity } from '../model/types'
-import { chooseFirstPersonQuality, firstPersonPartCount, isWithinFirstPersonRange } from './firstPersonPresentation'
+import { chooseFirstPersonQuality, firstPersonPartCount, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
 
 function entity(index: number): Entity {
   return {
@@ -18,6 +18,11 @@ describe('first-person presentation budget', () => {
 
   it('gives all four participants distinct composite silhouettes', () => {
     expect(['car', 'horse', 'human', 'sheep'].map(kind => firstPersonPartCount(kind as Entity['kind']))).toEqual([7, 7, 6, 6])
+  })
+
+  it('instances only immutable scenery kinds and keeps race markers as entity models', () => {
+    expect(['tree', 'wall', 'obstacle'].every(kind => isFirstPersonStaticKind(kind as Entity['kind']))).toBe(true)
+    expect(['car', 'horse', 'human', 'sheep', 'start', 'finish', 'road'].some(kind => isFirstPersonStaticKind(kind as Entity['kind']))).toBe(false)
   })
 
   it('keeps culling a display-only decision around the player position', () => {

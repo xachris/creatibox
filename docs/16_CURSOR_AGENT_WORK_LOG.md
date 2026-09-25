@@ -100,6 +100,15 @@ V0.1 **不做**：账号、班级、教师后台、云同步、AI、网络多人
 
 ## 4. 会话记录
 
+### 2026-09-25 — First-Person 静态场景实例化
+
+- **会话目标**：继续 Phase 7，将 tree / wall / obstacle 纳入实例批处理，同时避免正常场景 draw-call 回归。
+- **分支 / PR**：`main`；无 PR。
+- **改动摘要**：tree 使用树干 / 树冠两个实例批次，wall / obstacle 使用一个共享盒体批次；每帧按距离和相机视锥紧凑写入可见实例，原 Entity ID 与 Runtime 数据保持权威。
+- **验证**：typecheck、261 tests、production build 通过。内置浏览器 Horse 环形混合比赛为 standard、11.9 ms、20 draw calls / 502 triangles、13 range-visible entities；切至 Oblique 后 First-Person canvas 清零，控制台无 warning/error。
+- **未完成 / 后续**：Chrome / Edge / Safari 与真实低端课堂设备矩阵；更高密度 WebGL 压力场景。
+- **风险 / 边界**：首次仅按距离压缩时正常场景升至 23 calls，已通过视锥紧凑提交修回 20；Three lazy chunk 仍超过 Vite 500 kB warning；本轮不部署。
+
 ### 2026-09-25 — First-Person 共享资源与道路实例化
 
 - **会话目标**：继续 Phase 7 性能门禁，降低重复 Three geometry / material 分配和道路 draw calls，并补首次加载指标。

@@ -2,6 +2,13 @@
 
 ## 2026-09-25
 
+### First-Person static scenery instancing
+
+- Batched trees into shared trunk/crown `InstancedMesh` draws and walls/obstacles into a shared solid batch while retaining their original Entity IDs, positions, rotations, sizes and colors.
+- Compacted only range-visible, camera-frustum-visible scenery into each frame's instance buffers. Empty/off-camera batches submit no draw call, so the normal circuit scene remains at 20 draw calls / 502 triangles instead of regressing to 23 calls.
+- Kept scenery entities in the same project and WorldRuntime; instancing is display-only and does not change collision, durability, rules, culling distance or simulation tick rate.
+- Validation: 261 tests, typecheck and production build pass. Browser QA recorded standard tier, 11.9 ms initialization, 13 range-visible entities, complete First-Person canvas cleanup after switching to Oblique and no console warning/error. No deployment.
+
 ### First-Person shared resources and road instancing
 
 - Reused one unit box, cylinder and sphere geometry across procedural First-Person models, and cached state-aware Lambert materials by color instead of allocating and mutating a material per mesh.

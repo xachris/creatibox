@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { CreatiBoxProject, Entity } from '../model/types'
 import { firstPersonCameraFrame } from '../experiments/firstPerson/threeMapping'
-import { chooseFirstPersonQuality, isWithinFirstPersonRange } from './firstPersonPresentation'
+import { chooseFirstPersonQuality, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
 
 export interface FirstPersonStats { drawCalls: number; triangles: number; visibleEntities: number; qualityTier: 'low' | 'standard' }
 type DeviceNavigator = Navigator & { deviceMemory?: number }
@@ -15,6 +15,11 @@ export class FirstPersonRenderer {
   private readonly models = new Map<string, THREE.Group>()
   private readonly geometries = new Map<string, THREE.BufferGeometry>()
   private readonly materials = new Map<string, THREE.MeshLambertMaterial>()
+  private readonly staticTreeIds: string[] = []
+  private readonly staticSolidIds: string[] = []
+  private treeTrunks: THREE.InstancedMesh | null = null
+  private treeCrowns: THREE.InstancedMesh | null = null
+  private staticSolids: THREE.InstancedMesh | null = null
   private readonly resizeObserver: ResizeObserver
   private readonly quality
   private disposed = false
@@ -37,8 +42,9 @@ export class FirstPersonRenderer {
     sun.position.set(200, 500, 100)
     this.scene.add(sun)
     this.buildStaticWorld(project)
+    this.buildStaticEntities(project)
     for (const entity of project.world.entities) {
-      if (entity.kind === 'road') continue
+      if (entity.kind === 'road' || isFirstPersonStaticKind(entity.kind)) continue
       const model = this.createModel(entity)
       model.userData.entityId = entity.id
       this.scene.add(model)
@@ -110,6 +116,86 @@ export class FirstPersonRenderer {
     this.scene.add(roads, edges)
   }
 
+  private instanceBatch(count: number, material: THREE.Material) {
+    const mesh = new THREE.InstancedMesh(this.geometry('box'), material, count)
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    mesh.frustumCulled = false
+    return mesh
+  }
+
+  private buildStaticEntities(project: Readonly<CreatiBoxProject>) {
+    const trees = project.world.entities.filter(entity => entity.kind === 'tree')
+    const solids = project.world.entities.filter(entity => entity.kind === 'wall' || entity.kind === 'obstacle')
+    this.staticTreeIds.push(...trees.map(entity => entity.id))
+    this.staticSolidIds.push(...solids.map(entity => entity.id))
+    if (trees.length) {
+      this.treeTrunks = new THREE.InstancedMesh(this.geometry('cylinder'), this.material(0x7c4a2d), trees.length)
+      this.treeCrowns = new THREE.InstancedMesh(this.geometry('sphere'), this.material(0xffffff), trees.length)
+      this.treeTrunks.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.treeCrowns.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+      this.treeTrunks.frustumCulled = false; this.treeCrowns.frustumCulled = false
+      trees.forEach((entity, index) => this.treeCrowns!.setColorAt(index, new THREE.Color(entity.color)))
+      if (this.treeCrowns.instanceColor) this.treeCrowns.instanceColor.needsUpdate = true
+      this.scene.add(this.treeTrunks, this.treeCrowns)
+    }
+    if (solids.length) {
+      this.staticSolids = this.instanceBatch(solids.length, this.material(0xffffff))
+      solids.forEach((entity, index) => this.staticSolids!.setColorAt(index, new THREE.Color(entity.color)))
+      if (this.staticSolids.instanceColor) this.staticSolids.instanceColor.needsUpdate = true
+      this.scene.add(this.staticSolids)
+    }
+  }
+
+  private updateStaticEntities(project: Readonly<CreatiBoxProject>, player: Readonly<Entity>, frustum: THREE.Frustum) {
+    const entities = new Map(project.world.entities.map(entity => [entity.id, entity]))
+    const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), quaternion = new THREE.Quaternion(), scale = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0)
+    const sphere = new THREE.Sphere(new THREE.Vector3(), 1), instanceColor = new THREE.Color()
+    let visible = 0
+    const inView = (entity: Readonly<Entity>) => {
+      const radius = Math.max(entity.size.x, entity.size.y)
+      sphere.center.set(entity.position.x, radius * .5, entity.position.y); sphere.radius = radius
+      return frustum.intersectsSphere(sphere)
+    }
+    const setMatrix = (mesh: THREE.InstancedMesh, index: number, entity: Readonly<Entity>, part: 'trunk' | 'crown' | 'solid', shown: boolean) => {
+      if (!shown) {
+        matrix.makeScale(0, 0, 0); mesh.setMatrixAt(index, matrix); return
+      }
+      const length = Math.max(12, entity.size.x), width = Math.max(8, entity.size.y)
+      quaternion.setFromAxisAngle(yAxis, -entity.rotation)
+      if (part === 'trunk') matrix.compose(position.set(entity.position.x, width * .28, entity.position.y), quaternion, scale.set(Math.max(4, width * .1), Math.max(25, width * .55), Math.max(4, width * .1)))
+      else if (part === 'crown') matrix.compose(position.set(entity.position.x, width * .72, entity.position.y), quaternion, scale.set(width * .42, width * .504, width * .42))
+      else matrix.compose(position.set(entity.position.x, Math.max(5, width * .225), entity.position.y), quaternion, scale.set(length, Math.max(10, width * .45), width))
+      mesh.setMatrixAt(index, matrix)
+    }
+    let visibleTreeCount = 0
+    this.staticTreeIds.forEach(id => {
+      const entity = entities.get(id); if (!entity || !this.treeTrunks || !this.treeCrowns) return
+      const shown = isWithinFirstPersonRange(entity, player.position, this.quality.farDistance)
+      if (!shown) return
+      visible += 1
+      if (!inView(entity)) return
+      setMatrix(this.treeTrunks, visibleTreeCount, entity, 'trunk', true); setMatrix(this.treeCrowns, visibleTreeCount, entity, 'crown', true)
+      this.treeCrowns.setColorAt(visibleTreeCount, instanceColor.setHex(entity.color))
+      visibleTreeCount += 1
+    })
+    let visibleSolidCount = 0
+    this.staticSolidIds.forEach(id => {
+      const entity = entities.get(id); if (!entity || !this.staticSolids) return
+      const shown = isWithinFirstPersonRange(entity, player.position, this.quality.farDistance)
+      if (!shown) return
+      visible += 1
+      if (!inView(entity)) return
+      setMatrix(this.staticSolids, visibleSolidCount, entity, 'solid', true)
+      this.staticSolids.setColorAt(visibleSolidCount, instanceColor.setHex(entity.color))
+      visibleSolidCount += 1
+    })
+    if (this.treeTrunks && this.treeCrowns) { this.treeTrunks.count = visibleTreeCount; this.treeCrowns.count = visibleTreeCount }
+    if (this.staticSolids) this.staticSolids.count = visibleSolidCount
+    for (const mesh of [this.treeTrunks, this.treeCrowns, this.staticSolids]) if (mesh) mesh.instanceMatrix.needsUpdate = true
+    if (this.treeCrowns?.instanceColor) this.treeCrowns.instanceColor.needsUpdate = true
+    if (this.staticSolids?.instanceColor) this.staticSolids.instanceColor.needsUpdate = true
+    return visible
+  }
+
   private createModel(entity: Readonly<Entity>) {
     const group = new THREE.Group(), length = Math.max(12, entity.size.x), width = Math.max(8, entity.size.y), color = entity.color
     if (entity.kind === 'car') {
@@ -137,14 +223,18 @@ export class FirstPersonRenderer {
 
   render(project: Readonly<CreatiBoxProject>, player: Readonly<Entity>): FirstPersonStats {
     if (this.disposed) return { drawCalls: 0, triangles: 0, visibleEntities: 0, qualityTier: this.quality.tier }
-    let visibleEntities = 0
+    const frame = firstPersonCameraFrame(player); this.camera.position.set(frame.position.x, frame.position.y, frame.position.z); this.camera.lookAt(frame.target.x, frame.target.y, frame.target.z)
+    this.camera.updateMatrixWorld()
+    const frustum = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse))
+    let visibleEntities = this.updateStaticEntities(project, player, frustum)
     for (const entity of project.world.entities) {
+      if (isFirstPersonStaticKind(entity.kind)) continue
       const model = this.models.get(entity.id); if (!model) continue
       model.visible = entity.id !== player.id && isWithinFirstPersonRange(entity, player.position, this.quality.farDistance); if (!model.visible) continue
       visibleEntities += 1; model.position.set(entity.position.x, 0, entity.position.y); model.rotation.y = -entity.rotation
       model.traverse(object => { if (!(object instanceof THREE.Mesh)) return; object.material = this.material(object.userData.baseColor as number, entity.state) })
     }
-    const frame = firstPersonCameraFrame(player); this.camera.position.set(frame.position.x, frame.position.y, frame.position.z); this.camera.lookAt(frame.target.x, frame.target.y, frame.target.z); this.renderer.render(this.scene, this.camera)
+    this.renderer.render(this.scene, this.camera)
     return { drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, visibleEntities, qualityTier: this.quality.tier }
   }
 

@@ -51,4 +51,12 @@
 
 运行宿主现在记录 `data-first-person-load-ms`，覆盖 Three 懒加载、renderer 构造和首批场景对象准备时间。当前本地内置浏览器的单次样本为 12.6 ms；standard 档、13 个可见实体时为 20 draw calls / 502 triangles。切换到 Oblique 后 First-Person canvas 为 0，控制台无 warning/error。260 项测试、typecheck 与 production build 通过。
 
-这不是跨设备结论。尚未实例化 tree / wall / obstacle 等同类静态 Entity，也未完成 Chrome / Edge / Safari 和真实低端课堂设备矩阵；首次加载数据需在这些设备上重复采样。Three 懒加载 chunk 仍超过 Vite 500 kB warning threshold。
+这不是跨设备结论。该轮尚未实例化 tree / wall / obstacle 等同类静态 Entity，也未完成 Chrome / Edge / Safari 和真实低端课堂设备矩阵；首次加载数据需在这些设备上重复采样。Three 懒加载 chunk 仍超过 Vite 500 kB warning threshold。
+
+## 7. 第三轮：静态场景实例化
+
+2026-09-25 将 tree 拆为共享树干 / 树冠两个实例批次，将 wall / obstacle 合并为一个盒体实例批次。每个实例矩阵仍由原 Entity ID 对应的 position、rotation、size 与 color 生成；Entity 继续存在于同一个项目和 WorldRuntime，碰撞、耐久、规则与 tick 不读取 Three 对象。
+
+renderer 每帧只把距离范围内且位于当前相机视锥内的静态对象紧凑写入实例缓冲。空批次的 count 为 0，不提交 draw call。初版只做距离裁剪时，正常场景从 20 增至 23 draw calls，因此未接受；加入视锥紧凑提交后，同一 Horse 环形比赛恢复到 20 draw calls / 502 triangles，13 个距离范围内实体，standard 档首次初始化样本 11.9 ms。切回 Oblique 后 First-Person canvas 为 0，控制台无 warning/error。
+
+261 项测试、typecheck 与 production build 通过。下一步仍是 Chrome / Edge / Safari 与真实低端课堂设备矩阵；若继续扩大场景密度，再增加含 WebGL 统计的专用压力场景，不用纯 CPU fixture 代替 GPU 证据。

@@ -19,6 +19,10 @@ export function firstPersonPartCount(kind: EntityKind): number {
   return ({ car: 7, horse: 7, human: 6, sheep: 6, tree: 2 } as Partial<Record<EntityKind, number>>)[kind] ?? 1
 }
 
+export function isFirstPersonStaticKind(kind: EntityKind): boolean {
+  return kind === 'tree' || kind === 'wall' || kind === 'obstacle'
+}
+
 export function isWithinFirstPersonRange(entity: Readonly<Entity>, camera: Readonly<Vec2>, farDistance: number): boolean {
   const radius = Math.max(entity.size.x, entity.size.y) / 2
   const dx = entity.position.x - camera.x
