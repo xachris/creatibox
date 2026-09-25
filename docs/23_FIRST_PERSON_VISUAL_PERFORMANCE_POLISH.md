@@ -44,3 +44,11 @@
 - 本轮浏览器证据来自一个桌面环境；Chrome / Edge / Safari 与真实低端课堂设备仍需分别记录。
 - 距离裁剪尚未使用 InstancedMesh，也未合并重复材质和几何。实体密度更高时 draw calls 会随可见复合部件增加。
 - 下一轮优先做共享 geometry / material、静态对象 instancing、首次加载计时和多浏览器设备矩阵；继续禁止 3D physics、垂直运动、VR 和第一人称编辑。
+
+## 6. 第二轮：共享资源与道路实例化
+
+2026-09-25 完成第一批共享资源优化：程序化模型复用单位 box / cylinder / sphere geometry；Lambert material 按颜色与 Entity 状态缓存，Broken / Damaged 表现不再通过修改每个 mesh 的独立材质实现。道路面全部进入一个 `InstancedMesh`，两侧边线进入另一个实例批次，因此赛道段数不再线性增加 road draw call。
+
+运行宿主现在记录 `data-first-person-load-ms`，覆盖 Three 懒加载、renderer 构造和首批场景对象准备时间。当前本地内置浏览器的单次样本为 12.6 ms；standard 档、13 个可见实体时为 20 draw calls / 502 triangles。切换到 Oblique 后 First-Person canvas 为 0，控制台无 warning/error。260 项测试、typecheck 与 production build 通过。
+
+这不是跨设备结论。尚未实例化 tree / wall / obstacle 等同类静态 Entity，也未完成 Chrome / Edge / Safari 和真实低端课堂设备矩阵；首次加载数据需在这些设备上重复采样。Three 懒加载 chunk 仍超过 Vite 500 kB warning threshold。

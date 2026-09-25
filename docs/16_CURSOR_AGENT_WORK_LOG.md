@@ -100,6 +100,15 @@ V0.1 **不做**：账号、班级、教师后台、云同步、AI、网络多人
 
 ## 4. 会话记录
 
+### 2026-09-25 — First-Person 共享资源与道路实例化
+
+- **会话目标**：继续 Phase 7 性能门禁，降低重复 Three geometry / material 分配和道路 draw calls，并补首次加载指标。
+- **分支 / PR**：`main`；无 PR。
+- **改动摘要**：First-Person 程序化模型共享单位 box / cylinder / sphere geometry；材质按颜色与状态缓存；道路面和两侧边线分别使用 InstancedMesh；运行宿主记录首次加载与初始化耗时。
+- **验证**：typecheck、260 tests、production build 通过。内置浏览器 Horse 环形混合比赛切入 First-Person，记录 standard、12.6 ms、20 draw calls / 502 triangles、13 visible entities；切至 Oblique 后 First-Person canvas 清零，控制台无 warning/error。
+- **未完成 / 后续**：tree / wall / obstacle 静态实体实例化；Chrome / Edge / Safari 与真实低端课堂设备矩阵。
+- **风险 / 边界**：未改变 Runtime、Entity、物理、规则或 tick；Three lazy chunk 仍超过 Vite 500 kB warning；本轮不部署。
+
 ### 2026-09-24 — 碰撞体与参赛身份修正
 
 - 修正 Horse / Human / Sheep 视觉轮廓大于 SAT 碰撞体造成的视觉重叠；增加全部 16 个有向物种配对的实时分离回归。

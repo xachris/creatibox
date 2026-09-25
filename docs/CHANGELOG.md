@@ -2,6 +2,13 @@
 
 ## 2026-09-25
 
+### First-Person shared resources and road instancing
+
+- Reused one unit box, cylinder and sphere geometry across procedural First-Person models, and cached state-aware Lambert materials by color instead of allocating and mutating a material per mesh.
+- Batched all road slabs into one `InstancedMesh` and both edge-line sets into a second instance batch. Entity IDs, Runtime state, collision bodies and view switching remain unchanged.
+- Added a browser-visible First-Person load measurement. Local browser QA recorded a 12.6 ms lazy-load/initialization sample, 20 draw calls / 502 triangles with 13 visible entities, complete canvas cleanup after switching to Oblique and no console warning/error.
+- Validation: 260 tests, typecheck and production build pass. The shared Three lazy chunk remains above Vite's 500 kB warning threshold. No deployment.
+
 ### Oblique Horse V1 runtime art integration
 
 - Replaced the Oblique horse's procedural vector drawing with the approved transparent Horse Brown V1 atlas while retaining the vector renderer as a load-failure fallback.

@@ -300,10 +300,12 @@ async function activateView(viewMode: ViewMode) {
   }
 
   try {
+    const loadStartedAt = performance.now()
     const { FirstPersonRenderer } = await import('../render/firstPersonRenderer')
     if (request !== rendererRequest || !host.value || !runtimeProject || props.viewMode !== 'first-person') return
     firstPersonRenderer?.dispose()
     firstPersonRenderer = new FirstPersonRenderer(host.value, runtimeProject)
+    host.value.dataset.firstPersonLoadMs = (performance.now() - loadStartedAt).toFixed(1)
     setPixiVisible(false)
     viewState = { ...viewState, viewMode }
     render()

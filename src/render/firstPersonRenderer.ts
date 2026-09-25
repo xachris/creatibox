@@ -13,6 +13,8 @@ export class FirstPersonRenderer {
   private readonly scene = new THREE.Scene()
   private readonly camera: THREE.PerspectiveCamera
   private readonly models = new Map<string, THREE.Group>()
+  private readonly geometries = new Map<string, THREE.BufferGeometry>()
+  private readonly materials = new Map<string, THREE.MeshLambertMaterial>()
   private readonly resizeObserver: ResizeObserver
   private readonly quality
   private disposed = false
@@ -47,33 +49,65 @@ export class FirstPersonRenderer {
     this.resize()
   }
 
-  private material(color: number) { return new THREE.MeshLambertMaterial({ color }) }
+  private material(color: number, state: Entity['state'] = 'Idle') {
+    const key = `${color}:${state}`
+    let material = this.materials.get(key)
+    if (!material) {
+      const broken = state === 'Broken'
+      material = new THREE.MeshLambertMaterial({
+        color,
+        emissive: state === 'Damaged' || broken ? 0x451111 : 0,
+        opacity: broken ? .48 : 1,
+        transparent: broken,
+      })
+      this.materials.set(key, material)
+    }
+    return material
+  }
+  private geometry(key: 'box' | 'cylinder' | 'sphere') {
+    let geometry = this.geometries.get(key)
+    if (!geometry) {
+      geometry = key === 'box'
+        ? new THREE.BoxGeometry(1, 1, 1)
+        : key === 'cylinder'
+          ? new THREE.CylinderGeometry(1, 1, 1, 8)
+          : new THREE.SphereGeometry(1, 8, 6)
+      this.geometries.set(key, geometry)
+    }
+    return geometry
+  }
   private box(group: THREE.Group, size: [number, number, number], position: [number, number, number], color: number) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), this.material(color)); mesh.position.set(...position); group.add(mesh)
+    const mesh = new THREE.Mesh(this.geometry('box'), this.material(color)); mesh.scale.set(...size); mesh.position.set(...position); mesh.userData.baseColor = color; group.add(mesh)
   }
   private cylinder(group: THREE.Group, radius: number, height: number, position: [number, number, number], color: number, rotationX = 0) {
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 8), this.material(color)); mesh.position.set(...position); mesh.rotation.x = rotationX; group.add(mesh)
+    const mesh = new THREE.Mesh(this.geometry('cylinder'), this.material(color)); mesh.scale.set(radius, height, radius); mesh.position.set(...position); mesh.rotation.x = rotationX; mesh.userData.baseColor = color; group.add(mesh)
   }
   private sphere(group: THREE.Group, radius: number, position: [number, number, number], color: number, scale: [number, number, number] = [1, 1, 1]) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 8, 6), this.material(color)); mesh.position.set(...position); mesh.scale.set(...scale); group.add(mesh)
+    const mesh = new THREE.Mesh(this.geometry('sphere'), this.material(color)); mesh.position.set(...position); mesh.scale.set(radius * scale[0], radius * scale[1], radius * scale[2]); mesh.userData.baseColor = color; group.add(mesh)
   }
 
   private buildStaticWorld(project: Readonly<CreatiBoxProject>) {
     const bounds = project.world.worldBounds ?? { width: 1800, height: 1000 }
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(bounds.width, bounds.height), this.material(0x6fa35a))
-    ground.rotation.x = -Math.PI / 2; ground.position.set(bounds.width / 2, -0.12, bounds.height / 2); this.scene.add(ground)
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material(0x6fa35a))
+    ground.scale.set(bounds.width, bounds.height, 1); ground.rotation.x = -Math.PI / 2; ground.position.set(bounds.width / 2, -0.12, bounds.height / 2); this.scene.add(ground)
     const track = project.world.trackPath ?? []
+    const segmentCount = Math.max(0, track.length - 1)
+    const roads = new THREE.InstancedMesh(this.geometry('box'), this.material(0x475569), segmentCount)
+    const edges = new THREE.InstancedMesh(this.geometry('box'), this.material(0xf8fafc), segmentCount * 2)
+    const matrix = new THREE.Matrix4(), position = new THREE.Vector3(), quaternion = new THREE.Quaternion(), scale = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0)
     for (let index = 1; index < track.length; index++) {
       const from = track[index - 1], to = track[index]
       const length = Math.hypot(to.x - from.x, to.y - from.y) + 3
       const angle = -Math.atan2(to.y - from.y, to.x - from.x), x = (from.x + to.x) / 2, z = (from.y + to.y) / 2
-      const road = new THREE.Mesh(new THREE.BoxGeometry(length, 0.18, 170), this.material(0x475569))
-      road.position.set(x, 0, z); road.rotation.y = angle; this.scene.add(road)
+      quaternion.setFromAxisAngle(yAxis, angle)
+      matrix.compose(position.set(x, 0, z), quaternion, scale.set(length, .18, 170)); roads.setMatrixAt(index - 1, matrix)
       for (const side of [-1, 1]) {
-        const edge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.2, 3), this.material(0xf8fafc))
-        edge.position.set(x + Math.sin(angle) * side * 80, 0.12, z + Math.cos(angle) * side * 80); edge.rotation.y = angle; this.scene.add(edge)
+        matrix.compose(position.set(x + Math.sin(angle) * side * 80, .12, z + Math.cos(angle) * side * 80), quaternion, scale.set(length, .2, 3))
+        edges.setMatrixAt((index - 1) * 2 + (side === -1 ? 0 : 1), matrix)
       }
     }
+    roads.instanceMatrix.needsUpdate = true; edges.instanceMatrix.needsUpdate = true
+    this.scene.add(roads, edges)
   }
 
   private createModel(entity: Readonly<Entity>) {
@@ -108,7 +142,7 @@ export class FirstPersonRenderer {
       const model = this.models.get(entity.id); if (!model) continue
       model.visible = entity.id !== player.id && isWithinFirstPersonRange(entity, player.position, this.quality.farDistance); if (!model.visible) continue
       visibleEntities += 1; model.position.set(entity.position.x, 0, entity.position.y); model.rotation.y = -entity.rotation
-      model.traverse(object => { if (!(object instanceof THREE.Mesh)) return; const material = object.material as THREE.MeshLambertMaterial; material.opacity = entity.state === 'Broken' ? .48 : 1; material.transparent = material.opacity < 1; material.emissive.setHex(entity.state === 'Damaged' || entity.state === 'Broken' ? 0x451111 : 0) })
+      model.traverse(object => { if (!(object instanceof THREE.Mesh)) return; object.material = this.material(object.userData.baseColor as number, entity.state) })
     }
     const frame = firstPersonCameraFrame(player); this.camera.position.set(frame.position.x, frame.position.y, frame.position.z); this.camera.lookAt(frame.target.x, frame.target.y, frame.target.z); this.renderer.render(this.scene, this.camera)
     return { drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, visibleEntities, qualityTier: this.quality.tier }
@@ -117,7 +151,11 @@ export class FirstPersonRenderer {
   private resize() { if (this.disposed) return; const width = Math.max(1, this.host.clientWidth), height = Math.max(1, this.host.clientHeight); this.camera.aspect = width / height; this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false) }
   dispose() {
     if (this.disposed) return; this.disposed = true; this.resizeObserver.disconnect()
-    this.scene.traverse(object => { if (!(object instanceof THREE.Mesh)) return; object.geometry.dispose(); const materials = Array.isArray(object.material) ? object.material : [object.material]; for (const material of materials) material.dispose() })
+    const sharedGeometries = new Set(this.geometries.values())
+    this.scene.traverse(object => { if (object instanceof THREE.Mesh && !sharedGeometries.has(object.geometry)) object.geometry.dispose() })
+    for (const geometry of this.geometries.values()) geometry.dispose()
+    for (const material of this.materials.values()) material.dispose()
+    this.geometries.clear(); this.materials.clear()
     this.models.clear(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove()
   }
 }
