@@ -9,3 +9,8 @@
 - Default pivot: bottom-center (`0.5`, `0.94`)
 
 The renderer may mirror these four authored directions for their left-facing counterparts. Mirroring policy belongs to the renderer's asset mapping and does not change the Entity or Runtime state.
+
+Runtime use:
+
+- Oblique: animated PixiJS sprite with vector fallback.
+- First-Person: camera-facing Three.js sprite with direction/gait selection and procedural low-poly fallback if loading fails.

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { CreatiBoxProject, Entity } from '../model/types'
 import { firstPersonCameraFrame } from '../experiments/firstPerson/threeMapping'
-import { chooseFirstPersonQuality, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
+import { chooseFirstPersonQuality, firstPersonHorseFrame, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
 
 export interface FirstPersonStats { drawCalls: number; triangles: number; visibleEntities: number; qualityTier: 'low' | 'standard' }
 type DeviceNavigator = Navigator & { deviceMemory?: number }
@@ -15,6 +15,8 @@ export class FirstPersonRenderer {
   private readonly models = new Map<string, THREE.Group>()
   private readonly geometries = new Map<string, THREE.BufferGeometry>()
   private readonly materials = new Map<string, THREE.MeshLambertMaterial>()
+  private readonly horseSprites = new Map<string, THREE.Sprite>()
+  private horseAtlas: THREE.Texture | null = null
   private readonly staticTreeIds: string[] = []
   private readonly staticSolidIds: string[] = []
   private treeTrunks: THREE.InstancedMesh | null = null
@@ -34,6 +36,7 @@ export class FirstPersonRenderer {
     this.renderer.domElement.className = 'first-person-canvas'
     this.renderer.domElement.dataset.renderer = 'first-person'
     this.renderer.domElement.dataset.qualityTier = this.quality.tier
+    this.renderer.domElement.dataset.horseAtlas = project.world.entities.some(entity => entity.kind === 'horse') ? 'pending' : 'unused'
     this.host.appendChild(this.renderer.domElement)
     this.scene.fog = new THREE.Fog(0xbfd6ed, 250, this.quality.farDistance)
     this.camera = new THREE.PerspectiveCamera(70, 1, 0.5, this.quality.farDistance + 200)
@@ -50,9 +53,39 @@ export class FirstPersonRenderer {
       this.scene.add(model)
       this.models.set(entity.id, model)
     }
+    this.loadHorseAtlas(project)
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(this.host)
     this.resize()
+  }
+
+  private loadHorseAtlas(project: Readonly<CreatiBoxProject>) {
+    if (!project.world.entities.some(entity => entity.kind === 'horse')) return
+    new THREE.TextureLoader().load('/assets/participants/horse/horse-brown-v1.png', texture => {
+      if (this.disposed) { texture.dispose(); return }
+      texture.colorSpace = THREE.SRGBColorSpace
+      this.horseAtlas = texture
+      this.renderer.domElement.dataset.horseAtlas = 'loaded'
+      for (const entity of project.world.entities) {
+        if (entity.kind !== 'horse') continue
+        const group = this.models.get(entity.id)
+        if (!group) continue
+        const frameTexture = texture.clone()
+        frameTexture.repeat.set(1 / 5, 1 / 4)
+        frameTexture.needsUpdate = true
+        const material = new THREE.SpriteMaterial({ map: frameTexture, transparent: true, alphaTest: .04 })
+        const sprite = new THREE.Sprite(material)
+        const height = Math.max(52, entity.size.y * 1.45)
+        sprite.scale.set(height, height, 1)
+        sprite.position.y = height * .48
+        sprite.userData.horseAtlas = true
+        group.children.forEach(child => { child.visible = false })
+        group.add(sprite)
+        this.horseSprites.set(entity.id, sprite)
+      }
+    }, undefined, () => {
+      if (!this.disposed) this.renderer.domElement.dataset.horseAtlas = 'fallback'
+    })
   }
 
   private material(color: number, state: Entity['state'] = 'Idle') {
@@ -232,6 +265,17 @@ export class FirstPersonRenderer {
       const model = this.models.get(entity.id); if (!model) continue
       model.visible = entity.id !== player.id && isWithinFirstPersonRange(entity, player.position, this.quality.farDistance); if (!model.visible) continue
       visibleEntities += 1; model.position.set(entity.position.x, 0, entity.position.y); model.rotation.y = -entity.rotation
+      const horseSprite = this.horseSprites.get(entity.id)
+      if (horseSprite) {
+        const frame = firstPersonHorseFrame(entity, player.position, performance.now())
+        const texture = (horseSprite.material as THREE.SpriteMaterial).map
+        if (texture) {
+          texture.offset.set(frame.column / 5, 1 - (frame.row + 1) / 4)
+          texture.repeat.x = (frame.mirrored ? -1 : 1) / 5
+          if (frame.mirrored) texture.offset.x = (frame.column + 1) / 5
+        }
+        horseSprite.material.opacity = entity.state === 'Broken' ? .42 : 1
+      }
       model.traverse(object => { if (!(object instanceof THREE.Mesh)) return; object.material = this.material(object.userData.baseColor as number, entity.state) })
     }
     this.renderer.render(this.scene, this.camera)
@@ -245,6 +289,11 @@ export class FirstPersonRenderer {
     this.scene.traverse(object => { if (object instanceof THREE.Mesh && !sharedGeometries.has(object.geometry)) object.geometry.dispose() })
     for (const geometry of this.geometries.values()) geometry.dispose()
     for (const material of this.materials.values()) material.dispose()
+    for (const sprite of this.horseSprites.values()) {
+      const material = sprite.material as THREE.SpriteMaterial
+      material.map?.dispose(); material.dispose()
+    }
+    this.horseAtlas?.dispose(); this.horseAtlas = null; this.horseSprites.clear()
     this.geometries.clear(); this.materials.clear()
     this.models.clear(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.renderer.domElement.remove()
   }

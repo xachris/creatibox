@@ -73,3 +73,9 @@ renderer 每帧只把距离范围内且位于当前相机视锥内的静态对�
 | 1,000 | 120 | 8 | 45,178 | 12.0 ms | 1,001（含场景标记） |
 
 退出 1,000 Entity 场景后 First-Person canvas 与全部 canvas 均为 0，控制台无 warning/error。263 项测试、typecheck 与 production build 通过。结果证明当前实例批处理在本机高密度静态场景中保持固定 draw-call 数；它仍不是 Chrome / Edge / Safari 或真实低端课堂设备结论，这些设备矩阵是下一门禁。
+
+## 9. 第五轮：Horse Brown V1 第一人称贴图接入
+
+2026-09-25 将仓库中已有的 Horse Brown V1 生成图集接入正式 `FirstPersonRenderer`。非玩家 Horse 使用面向镜头的 Three.js sprite；显示层依据 Horse 朝向与相机的相对角度选择四个已绘制方向，通过水平镜像补齐另一侧，并在移动状态播放四帧 run 动画。玩家自身仍按第一人称规则隐藏，避免身体贴图遮挡镜头。
+
+图集异步加载期间或加载失败时继续显示既有程序化低模 Horse。切换视图和 dispose 会释放 sprite material、frame texture 与 atlas；选择方向、动画及透明度只读取 Entity，不写入 Entity、World 或 WorldRuntime。新增纯函数回归测试后，全套为 264 项测试。

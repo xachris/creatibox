@@ -2,6 +2,13 @@
 
 ## 2026-09-25
 
+### Horse Brown V1 First-Person texture
+
+- Reused the approved Horse Brown V1 atlas in the production First-Person renderer as an animated camera-facing sprite.
+- Kept direction, mirroring, gait and damaged opacity display-only; the shared Entity and WorldRuntime remain authoritative.
+- Retained the procedural low-poly horse while the atlas loads and as a failure fallback, with explicit texture disposal on renderer teardown.
+- Added frame-selection coverage; 264 tests, typecheck and production build pass.
+
 ### First-Person 500/1,000 Entity WebGL pressure gate
 
 - Added a development-only `?experiment=first-person-pressure&entities=500|1000` fixture that feeds ordinary Tree / Wall / Obstacle Entities through the production FirstPersonRenderer. It does not add a second Runtime, product navigation entry or saved project mode.

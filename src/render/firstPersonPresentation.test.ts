@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Entity } from '../model/types'
-import { chooseFirstPersonQuality, firstPersonPartCount, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
+import { chooseFirstPersonQuality, firstPersonHorseFrame, firstPersonPartCount, isFirstPersonStaticKind, isWithinFirstPersonRange } from './firstPersonPresentation'
 
 function entity(index: number): Entity {
   return {
@@ -29,6 +29,15 @@ describe('first-person presentation budget', () => {
     const item = entity(0)
     expect(isWithinFirstPersonRange(item, { ...item.position }, 900)).toBe(true)
     expect(isWithinFirstPersonRange(item, { x: 5000, y: 5000 }, 900)).toBe(false)
+  })
+
+  it('selects horse atlas direction, mirror and gait without changing the entity', () => {
+    const horse = { ...entity(1), kind: 'horse' as const, rotation: 0, speed: 20, state: 'Moving' as const }
+    const before = JSON.stringify(horse)
+    expect(firstPersonHorseFrame(horse, { x: 100, y: 0 }, 0)).toEqual({ row: 0, column: 1, mirrored: false })
+    expect(firstPersonHorseFrame(horse, { x: 0, y: 100 }, 220)).toEqual({ row: 1, column: 3, mirrored: true })
+    expect(firstPersonHorseFrame({ ...horse, speed: 0 }, { x: -100, y: 0 }, 440)).toEqual({ row: 3, column: 0, mirrored: true })
+    expect(JSON.stringify(horse)).toBe(before)
   })
 
   it.each([500, 1000])('culls a %i-entity pressure world by display range only', count => {
